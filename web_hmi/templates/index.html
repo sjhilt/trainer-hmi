@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manufacturing Process HMI</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0d1117;
+    color: #f0f6fc;
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header h1 { font-size: 22px; font-weight: 700; }
+  .header h1 span { color: #58a6ff; }
+  .header .status { font-size: 13px; color: #8b949e; }
+
+  /* Process bar */
+  .process-bar {
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .process-btn {
+    padding: 8px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #fff;
+    transition: all 0.2s;
+  }
+  .process-btn.run { background: #238636; }
+  .process-btn.run:hover { background: #2ea043; }
+  .process-btn.stop { background: #da3633; }
+  .process-btn.stop:hover { background: #e5534b; }
+  .stage-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #3fb950;
+    min-width: 200px;
+  }
+  .progress-track {
+    flex: 1;
+    height: 10px;
+    background: #30363d;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #238636, #3fb950);
+    border-radius: 5px;
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  /* Factory floor */
+  .factory {
+    padding: 24px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* Station card */
+  .station {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    width: 200px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+  .station.active { border-color: #3fb950; box-shadow: 0 0 12px rgba(63,185,80,0.15); }
+  .station-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid #30363d;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .station-name { font-size: 13px; font-weight: 700; }
+  .station-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #f85149;
+    transition: background 0.3s;
+  }
+  .station-dot.on { background: #3fb950; }
+  .station-info {
+    padding: 6px 14px;
+    font-size: 11px;
+    color: #8b949e;
+    border-bottom: 1px solid #21262d;
+  }
+
+  /* SVG equipment area */
+  .station-svg {
+    padding: 8px;
+    display: flex;
+    justify-content: center;
+    min-height: 80px;
+  }
+
+  /* Lights row */
+  .lights {
+    padding: 10px 14px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .light {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #30363d;
+    border: 2px solid #484f58;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .light.on {
+    border-color: #fff3;
+    box-shadow: 0 0 10px var(--glow);
+  }
+  .light:hover { transform: scale(1.15); }
+
+  /* Arrows between stations */
+  .arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: #30363d;
+    transition: color 0.3s;
+    align-self: center;
+    margin-top: 40px;
+  }
+  .arrow.active { color: #3fb950; }
+
+  /* Conveyor animation */
+  @keyframes conveyorMove {
+    0% { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -24; }
+  }
+  .conveyor-belt {
+    stroke-dasharray: 8 4;
+    animation: conveyorMove 0.8s linear infinite;
+    animation-play-state: paused;
+  }
+  .conveyor-belt.running { animation-play-state: running; }
+
+  /* Drill animation */
+  @keyframes drillSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .drill-bit {
+    transform-origin: center;
+    animation: drillSpin 0.5s linear infinite;
+    animation-play-state: paused;
+  }
+  .drill-bit.running { animation-play-state: running; }
+
+  /* Robot arm animation */
+  @keyframes armSwing {
+    0%, 100% { transform: rotate(-15deg); }
+    50% { transform: rotate(15deg); }
+  }
+  .robot-arm {
+    transform-origin: 10px 50px;
+    animation: armSwing 1.2s ease-in-out infinite;
+    animation-play-state: paused;
+  }
+  .robot-arm.running { animation-play-state: running; }
+
+  /* Spray animation */
+  @keyframes sprayPulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+  .spray {
+    animation: sprayPulse 0.6s ease-in-out infinite;
+    animation-play-state: paused;
+  }
+  .spray.running { animation-play-state: running; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 16px;
+    color: #484f58;
+    font-size: 11px;
+    border-top: 1px solid #21262d;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚙ <span>Manufacturing Process</span> HMI</h1>
+  <div class="status" id="connStatus">Connecting...</div>
+</div>
+
+<div class="process-bar">
+  <button class="process-btn run" id="processBtn" onclick="toggleProcess()">▶ Run Process</button>
+  <div class="stage-label" id="stageLabel">Process idle</div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+</div>
+
+<div class="factory" id="factory">
+
+  <!-- Station: Conveyor In (.30) -->
+  <div class="station" id="station-mlgx30">
+    <div class="station-header">
+      <span class="station-name" style="color:#58a6ff">Conveyor In</span>
+      <div class="station-dot" id="dot-mlgx30"></div>
+    </div>
+    <div class="station-info">MicroLogix .30 &middot; 192.168.0.30</div>
+    <div class="station-svg">
+      <svg width="160" height="60" viewBox="0 0 160 60">
+        <!-- Conveyor frame -->
+        <rect x="5" y="35" width="150" height="4" rx="2" fill="#484f58"/>
+        <circle cx="15" cy="37" r="8" fill="#30363d" stroke="#484f58" stroke-width="2"/>
+        <circle cx="145" cy="37" r="8" fill="#30363d" stroke="#484f58" stroke-width="2"/>
+        <!-- Belt -->
+        <line x1="15" y1="29" x2="145" y2="29" stroke="#58a6ff" stroke-width="3"
+              class="conveyor-belt" id="belt-mlgx30"/>
+        <!-- Box on belt -->
+        <rect x="70" y="14" width="20" height="15" rx="2" fill="#58a6ff" opacity="0.6" id="box-mlgx30"/>
+      </svg>
+    </div>
+    <div class="lights" id="lights-mlgx30"></div>
+  </div>
+
+  <div class="arrow" id="arrow-0">→</div>
+
+  <!-- Station: Drill Press (.31) -->
+  <div class="station" id="station-mlgx31">
+    <div class="station-header">
+      <span class="station-name" style="color:#3fb950">Drill Press</span>
+      <div class="station-dot" id="dot-mlgx31"></div>
+    </div>
+    <div class="station-info">MicroLogix .31 &middot; 192.168.0.31</div>
+    <div class="station-svg">
+      <svg width="160" height="60" viewBox="0 0 160 60">
+        <!-- Drill frame -->
+        <rect x="70" y="5" width="20" height="8" rx="2" fill="#484f58"/>
+        <rect x="78" y="13" width="4" height="25" fill="#8b949e"/>
+        <!-- Drill bit (spinning) -->
+        <g class="drill-bit" id="drill-mlgx31">
+          <polygon points="80,38 74,50 86,50" fill="#3fb950"/>
+        </g>
+        <!-- Work surface -->
+        <rect x="20" y="50" width="120" height="4" rx="2" fill="#484f58"/>
+        <rect x="65" y="42" width="30" height="8" rx="1" fill="#30363d" stroke="#3fb950" stroke-width="1"/>
+      </svg>
+    </div>
+    <div class="lights" id="lights-mlgx31"></div>
+  </div>
+
+  <div class="arrow" id="arrow-1">→</div>
+
+  <!-- Station: Assembly (S7) -->
+  <div class="station" id="station-s7">
+    <div class="station-header">
+      <span class="station-name" style="color:#39d2c0">Assembly</span>
+      <div class="station-dot" id="dot-s7"></div>
+    </div>
+    <div class="station-info">Siemens S7-1200 &middot; 192.168.0.2</div>
+    <div class="station-svg">
+      <svg width="160" height="60" viewBox="0 0 160 60">
+        <!-- Robot base -->
+        <rect x="70" y="50" width="20" height="6" rx="2" fill="#484f58"/>
+        <rect x="78" y="30" width="4" height="20" fill="#8b949e"/>
+        <!-- Robot arm -->
+        <g class="robot-arm" id="arm-s7">
+          <rect x="60" y="22" width="40" height="6" rx="3" fill="#39d2c0"/>
+          <circle cx="60" cy="25" r="4" fill="#39d2c0"/>
+          <circle cx="100" cy="25" r="4" fill="#39d2c0"/>
+          <!-- Gripper -->
+          <line x1="58" y1="29" x2="54" y2="38" stroke="#39d2c0" stroke-width="2"/>
+          <line x1="62" y1="29" x2="66" y2="38" stroke="#39d2c0" stroke-width="2"/>
+        </g>
+        <!-- Part on table -->
+        <rect x="30" y="50" width="100" height="4" rx="2" fill="#484f58"/>
+      </svg>
+    </div>
+    <div class="lights" id="lights-s7"></div>
+  </div>
+
+  <div class="arrow" id="arrow-2">→</div>
+
+  <!-- Station: Paint & QC (Phoenix) -->
+  <div class="station" id="station-phx">
+    <div class="station-header">
+      <span class="station-name" style="color:#d29922">Paint & QC</span>
+      <div class="station-dot" id="dot-phx"></div>
+    </div>
+    <div class="station-info">Phoenix Contact &middot; 192.168.0.3</div>
+    <div class="station-svg">
+      <svg width="160" height="60" viewBox="0 0 160 60">
+        <!-- Spray nozzle -->
+        <rect x="72" y="5" width="16" height="12" rx="3" fill="#484f58"/>
+        <!-- Spray particles -->
+        <g class="spray" id="spray-phx">
+          <circle cx="75" cy="28" r="2" fill="#d29922" opacity="0.7"/>
+          <circle cx="80" cy="32" r="3" fill="#d29922" opacity="0.5"/>
+          <circle cx="85" cy="28" r="2" fill="#d29922" opacity="0.7"/>
+          <circle cx="78" cy="36" r="2.5" fill="#d29922" opacity="0.4"/>
+          <circle cx="82" cy="38" r="2" fill="#d29922" opacity="0.6"/>
+          <circle cx="76" cy="42" r="1.5" fill="#d29922" opacity="0.3"/>
+          <circle cx="84" cy="42" r="1.5" fill="#d29922" opacity="0.3"/>
+        </g>
+        <!-- Part being painted -->
+        <rect x="60" y="46" width="40" height="10" rx="2" fill="#30363d" stroke="#d29922" stroke-width="1"/>
+      </svg>
+    </div>
+    <div class="lights" id="lights-phx"></div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Trainer HMI &middot; 4 PLCs &middot; ENIP / S7comm / Modbus TCP &middot; Polls every 500ms
+</div>
+
+<script>
+const PLC_IDS = ["mlgx30", "mlgx31", "s7", "phx"];
+const PLC_COLORS = {
+  mlgx30: "#58a6ff",
+  mlgx31: "#3fb950",
+  s7: "#39d2c0",
+  phx: "#d29922"
+};
+const PLC_DEVICE_COUNTS = { mlgx30: 5, mlgx31: 5, s7: 5, phx: 2 };
+
+let processRunning = false;
+
+// Build light dots
+function initLights() {
+  PLC_IDS.forEach(pid => {
+    const container = document.getElementById("lights-" + pid);
+    const count = PLC_DEVICE_COUNTS[pid];
+    const color = PLC_COLORS[pid];
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement("div");
+      dot.className = "light";
+      dot.id = `light-${pid}-${i}`;
+      dot.style.setProperty("--glow", color);
+      dot.title = `Output ${i}`;
+      dot.onclick = () => toggleCommand(pid, i);
+      container.appendChild(dot);
+    }
+  });
+}
+
+// Poll state
+async function pollState() {
+  try {
+    const resp = await fetch("/api/state");
+    const data = await resp.json();
+
+    // Process
+    processRunning = data.process_running;
+    const btn = document.getElementById("processBtn");
+    if (processRunning) {
+      btn.textContent = "■ Stop Process";
+      btn.className = "process-btn stop";
+    } else {
+      btn.textContent = "▶ Run Process";
+      btn.className = "process-btn run";
+    }
+    document.getElementById("stageLabel").textContent = data.process_stage || "Idle";
+    document.getElementById("progressFill").style.width = data.process_step + "%";
+
+    // Count connected
+    let connCount = 0;
+    let total = PLC_IDS.length;
+
+    PLC_IDS.forEach((pid, pIdx) => {
+      const plc = data.plcs[pid];
+      if (!plc) return;
+
+      // Connection dot
+      const dot = document.getElementById("dot-" + pid);
+      dot.className = plc.connected ? "station-dot on" : "station-dot";
+      if (plc.connected) connCount++;
+
+      // Station active glow
+      const station = document.getElementById("station-" + pid);
+      const anyOn = plc.outputs.some(v => v);
+      station.className = anyOn ? "station active" : "station";
+
+      // Lights
+      plc.outputs.forEach((on, i) => {
+        const light = document.getElementById(`light-${pid}-${i}`);
+        if (light) {
+          light.className = on ? "light on" : "light";
+          light.style.background = on ? PLC_COLORS[pid] : "#30363d";
+        }
+      });
+
+      // Animations
+      if (pid === "mlgx30") {
+        const belt = document.getElementById("belt-mlgx30");
+        belt.className.baseVal = anyOn ? "conveyor-belt running" : "conveyor-belt";
+      } else if (pid === "mlgx31") {
+        const drill = document.getElementById("drill-mlgx31");
+        drill.className.baseVal = anyOn ? "drill-bit running" : "drill-bit";
+      } else if (pid === "s7") {
+        const arm = document.getElementById("arm-s7");
+        arm.className.baseVal = anyOn ? "robot-arm running" : "robot-arm";
+      } else if (pid === "phx") {
+        const spray = document.getElementById("spray-phx");
+        spray.className.baseVal = anyOn ? "spray running" : "spray";
+      }
+
+      // Arrows
+      if (pIdx < PLC_IDS.length - 1) {
+        const arrow = document.getElementById("arrow-" + pIdx);
+        if (arrow) arrow.className = anyOn ? "arrow active" : "arrow";
+      }
+    });
+
+    document.getElementById("connStatus").textContent =
+      `${connCount}/${total} PLCs connected`;
+
+  } catch (err) {
+    document.getElementById("connStatus").textContent = "Connection error: " + err.message;
+  }
+}
+
+async function toggleProcess() {
+  const action = processRunning ? "stop" : "start";
+  await fetch("/api/process", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action })
+  });
+}
+
+async function toggleCommand(pid, devIdx) {
+  // Read current state from the light
+  const light = document.getElementById(`light-${pid}-${devIdx}`);
+  const isOn = light.classList.contains("on");
+  await fetch("/api/command", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ plc_id: pid, dev_idx: devIdx, state: !isOn })
+  });
+}
+
+// Init
+initLights();
+setInterval(pollState, 500);
+pollState();
+</script>
+</body>
+</html>

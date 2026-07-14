@@ -1,1 +1,3 @@
-pycomm3>=1.2.14
+pycomm3
+python-snap7
+flask
