@@ -352,56 +352,117 @@ def clear_all():
 
 
 def process_loop():
-    """Background thread running the manufacturing process simulation."""
+    """Background thread — realistic manufacturing process simulation.
+
+    Runs through production stages where each station activates in sequence
+    with realistic timing:
+      1. Conveyor loads material (mlgx30 lights cascade)
+      2. Drill press operates (mlgx31 lights pulse)
+      3. Robot assembles (s7 lights animate)
+      4. Paint & QC (phx coils cycle)
+    Between full cycles there's a brief changeover pause.
+    Within each stage, individual outputs fire with random organic timing
+    to look like real equipment operating.
+    """
     global process_running, process_stage, process_step
 
-    # Build flat list of all (pid, dev_idx) pairs
-    all_points = []
-    for plc in PLCS:
-        for dev in plc["devices"]:
-            all_points.append((plc["id"], dev["idx"]))
-    total = len(all_points)
-
-    stage_names = [
-        "Raw Material Feed",
-        "Conveyor Transport",
-        "Drilling Operation",
-        "Part Assembly",
-        "Paint Application",
-        "Quality Inspection",
-        "Packaging",
-        "Shipping",
+    # Station definitions
+    stations = [
+        {"pid": "mlgx30", "name": "Conveyor In",       "devs": 5},
+        {"pid": "mlgx31", "name": "Drill Press",       "devs": 5},
+        {"pid": "s7",     "name": "Assembly Robot",     "devs": 5},
+        {"pid": "phx",    "name": "Paint & QC",        "devs": 2},
     ]
 
-    cycle_len = total * 2 + 4  # forward + pause + reverse + pause
-    step = 0
+    production_runs = [
+        "Batch #A-{:04d} — Aluminum Brackets",
+        "Batch #B-{:04d} — Steel Housings",
+        "Batch #C-{:04d} — Copper Connectors",
+        "Batch #D-{:04d} — Titanium Shafts",
+    ]
+
+    batch_num = random.randint(1000, 9999)
+    run_count = 0
 
     while process_running:
-        local_step = step % cycle_len
-        phase = step // cycle_len
-        process_stage = stage_names[phase % len(stage_names)]
-        process_step = int((local_step + 1) / cycle_len * 100)
+        batch_label = production_runs[run_count % len(production_runs)].format(batch_num)
+        run_count += 1
+        batch_num += 1
 
-        if local_step < total:
-            # Forward sweep
-            for i, (pid, didx) in enumerate(all_points):
-                write_command(pid, didx, i == local_step)
-        elif local_step < total + 2:
-            # All on
-            for pid, didx in all_points:
-                write_command(pid, didx, True)
-        elif local_step < total * 2 + 2:
-            # Reverse sweep
-            rev = total - 1 - (local_step - total - 2)
-            for i, (pid, didx) in enumerate(all_points):
-                write_command(pid, didx, i == rev)
-        else:
-            # All off pause
-            for pid, didx in all_points:
-                write_command(pid, didx, False)
+        # --- Stage 1: Conveyor loads raw material ---
+        process_stage = "📦 {} — Loading raw material".format(batch_label)
+        for tick in range(12):
+            if not process_running: break
+            process_step = int(tick / 12 * 25)
+            # Cascade conveyor lights one by one
+            for i in range(5):
+                write_command("mlgx30", i, i <= tick % 5)
+            time.sleep(random.uniform(0.2, 0.4))
+        # Conveyor running steady
+        for i in range(5):
+            write_command("mlgx30", i, True)
+        time.sleep(0.5)
+        # Turn off conveyor
+        for i in range(5):
+            write_command("mlgx30", i, False)
 
-        step += 1
-        time.sleep(0.3)
+        if not process_running: break
+
+        # --- Stage 2: Drill Press machining ---
+        process_stage = "🔩 {} — Drilling holes".format(batch_label)
+        for tick in range(15):
+            if not process_running: break
+            process_step = 25 + int(tick / 15 * 25)
+            # Simulate drill: motor on, clamp, drill down, retract
+            write_command("mlgx31", 0, True)  # Motor
+            write_command("mlgx31", 1, tick % 4 < 2)  # Clamp cycling
+            write_command("mlgx31", 2, tick % 3 == 0)  # Drill pulse
+            write_command("mlgx31", 3, tick % 5 < 3)  # Coolant
+            write_command("mlgx31", 4, random.random() < 0.4)  # Status
+            time.sleep(random.uniform(0.2, 0.35))
+        for i in range(5):
+            write_command("mlgx31", i, False)
+
+        if not process_running: break
+
+        # --- Stage 3: Robot Assembly ---
+        process_stage = "🤖 {} — Assembling components".format(batch_label)
+        for tick in range(18):
+            if not process_running: break
+            process_step = 50 + int(tick / 18 * 25)
+            # Simulate: pick, move, place, weld, inspect
+            cycle_pos = tick % 6
+            write_command("s7", 0, cycle_pos < 3)     # Arm extend/retract
+            write_command("s7", 1, cycle_pos in [1,2]) # Gripper
+            write_command("s7", 2, cycle_pos == 3)     # Weld
+            write_command("s7", 3, cycle_pos == 4)     # Rotate
+            write_command("s7", 4, cycle_pos == 5)     # Done signal
+            time.sleep(random.uniform(0.15, 0.35))
+        for i in range(5):
+            write_command("s7", i, False)
+
+        if not process_running: break
+
+        # --- Stage 4: Paint & Quality Check ---
+        process_stage = "🎨 {} — Paint & quality check".format(batch_label)
+        for tick in range(10):
+            if not process_running: break
+            process_step = 75 + int(tick / 10 * 20)
+            write_command("phx", 0, tick % 3 != 2)  # Spray on/off
+            write_command("phx", 1, tick > 6)        # QC pass light
+            time.sleep(random.uniform(0.25, 0.5))
+        write_command("phx", 0, False)
+        write_command("phx", 1, True)  # QC pass
+        time.sleep(0.6)
+        write_command("phx", 1, False)
+
+        if not process_running: break
+
+        # --- Changeover ---
+        process_stage = "✅ {} — Complete! Changeover...".format(batch_label)
+        process_step = 100
+        time.sleep(1.5)
+        process_step = 0
 
     process_stage = "Stopped"
     process_step = 0

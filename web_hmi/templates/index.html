@@ -13,7 +13,6 @@
     min-height: 100vh;
   }
 
-  /* Header */
   .header {
     background: #161b22;
     border-bottom: 1px solid #30363d;
@@ -26,7 +25,6 @@
   .header h1 span { color: #58a6ff; }
   .header .status { font-size: 13px; color: #8b949e; }
 
-  /* Process bar */
   .process-bar {
     background: #161b22;
     border-bottom: 1px solid #30363d;
@@ -70,7 +68,6 @@
     width: 0%;
   }
 
-  /* Factory floor */
   .factory {
     padding: 24px;
     display: flex;
@@ -80,16 +77,15 @@
     flex-wrap: wrap;
   }
 
-  /* Station card */
   .station {
     background: #161b22;
     border: 1px solid #30363d;
     border-radius: 12px;
-    width: 200px;
+    width: 210px;
     overflow: hidden;
-    transition: border-color 0.3s;
+    transition: border-color 0.3s, box-shadow 0.3s;
   }
-  .station.active { border-color: #3fb950; box-shadow: 0 0 12px rgba(63,185,80,0.15); }
+  .station.active { border-color: #3fb950; box-shadow: 0 0 16px rgba(63,185,80,0.2); }
   .station-header {
     padding: 10px 14px;
     border-bottom: 1px solid #30363d;
@@ -112,15 +108,14 @@
     border-bottom: 1px solid #21262d;
   }
 
-  /* SVG equipment area */
   .station-svg {
-    padding: 8px;
+    padding: 10px 8px;
     display: flex;
     justify-content: center;
-    min-height: 80px;
+    min-height: 110px;
+    background: #0d1117;
   }
 
-  /* Lights row */
   .lights {
     padding: 10px 14px;
     display: flex;
@@ -135,7 +130,6 @@
     border: 2px solid #484f58;
     cursor: pointer;
     transition: all 0.15s;
-    position: relative;
   }
   .light.on {
     border-color: #fff3;
@@ -143,7 +137,6 @@
   }
   .light:hover { transform: scale(1.15); }
 
-  /* Arrows between stations */
   .arrow {
     display: flex;
     align-items: center;
@@ -152,58 +145,104 @@
     color: #30363d;
     transition: color 0.3s;
     align-self: center;
-    margin-top: 40px;
+    margin-top: 60px;
   }
   .arrow.active { color: #3fb950; }
 
-  /* Conveyor animation */
-  @keyframes conveyorMove {
+  /* Conveyor belt animation */
+  @keyframes conveyorRoll {
     0% { stroke-dashoffset: 0; }
-    100% { stroke-dashoffset: -24; }
+    100% { stroke-dashoffset: -20; }
   }
-  .conveyor-belt {
-    stroke-dasharray: 8 4;
-    animation: conveyorMove 0.8s linear infinite;
+  .belt-line {
+    stroke-dasharray: 6 4;
+    animation: conveyorRoll 0.6s linear infinite;
     animation-play-state: paused;
   }
-  .conveyor-belt.running { animation-play-state: running; }
+  .belt-line.running { animation-play-state: running; }
 
-  /* Drill animation */
-  @keyframes drillSpin {
+  @keyframes rollerSpin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
-  .drill-bit {
+  .roller {
+    animation: rollerSpin 1s linear infinite;
+    animation-play-state: paused;
     transform-origin: center;
-    animation: drillSpin 0.5s linear infinite;
+  }
+  .roller.running { animation-play-state: running; }
+
+  /* Drill animation */
+  @keyframes drillDown {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(8px); }
+  }
+  .drill-head {
+    animation: drillDown 0.8s ease-in-out infinite;
     animation-play-state: paused;
   }
-  .drill-bit.running { animation-play-state: running; }
+  .drill-head.running { animation-play-state: running; }
+
+  @keyframes bitSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .drill-bit-spin {
+    animation: bitSpin 0.3s linear infinite;
+    animation-play-state: paused;
+    transform-origin: center;
+  }
+  .drill-bit-spin.running { animation-play-state: running; }
 
   /* Robot arm animation */
   @keyframes armSwing {
-    0%, 100% { transform: rotate(-15deg); }
-    50% { transform: rotate(15deg); }
+    0%, 100% { transform: rotate(-20deg); }
+    50% { transform: rotate(20deg); }
   }
   .robot-arm {
-    transform-origin: 10px 50px;
-    animation: armSwing 1.2s ease-in-out infinite;
+    animation: armSwing 1.5s ease-in-out infinite;
     animation-play-state: paused;
   }
   .robot-arm.running { animation-play-state: running; }
 
-  /* Spray animation */
-  @keyframes sprayPulse {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 1; }
+  @keyframes gripOpen {
+    0%, 100% { transform: scaleX(1); }
+    50% { transform: scaleX(0.6); }
   }
-  .spray {
-    animation: sprayPulse 0.6s ease-in-out infinite;
+  .gripper {
+    animation: gripOpen 1.5s ease-in-out infinite;
+    animation-play-state: paused;
+    transform-origin: center;
+  }
+  .gripper.running { animation-play-state: running; }
+
+  /* Paint spray animation */
+  @keyframes sprayFall {
+    0% { transform: translateY(0); opacity: 0.8; }
+    100% { transform: translateY(12px); opacity: 0; }
+  }
+  .spray-drop {
+    animation: sprayFall 0.5s ease-in infinite;
     animation-play-state: paused;
   }
-  .spray.running { animation-play-state: running; }
+  .spray-drop.running { animation-play-state: running; }
+  .spray-drop:nth-child(2) { animation-delay: 0.1s; }
+  .spray-drop:nth-child(3) { animation-delay: 0.2s; }
+  .spray-drop:nth-child(4) { animation-delay: 0.15s; }
+  .spray-drop:nth-child(5) { animation-delay: 0.25s; }
+  .spray-drop:nth-child(6) { animation-delay: 0.05s; }
+  .spray-drop:nth-child(7) { animation-delay: 0.3s; }
 
-  /* Footer */
+  @keyframes nozzlePulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  .nozzle-glow {
+    animation: nozzlePulse 0.4s ease-in-out infinite;
+    animation-play-state: paused;
+  }
+  .nozzle-glow.running { animation-play-state: running; }
+
   .footer {
     text-align: center;
     padding: 16px;
@@ -230,24 +269,46 @@
 
 <div class="factory" id="factory">
 
-  <!-- Station: Conveyor In (.30) -->
+  <!-- ============== CONVEYOR IN (.30) ============== -->
   <div class="station" id="station-mlgx30">
     <div class="station-header">
-      <span class="station-name" style="color:#58a6ff">Conveyor In</span>
+      <span class="station-name" style="color:#58a6ff">📦 Conveyor In</span>
       <div class="station-dot" id="dot-mlgx30"></div>
     </div>
-    <div class="station-info">MicroLogix .30 &middot; 192.168.0.30</div>
+    <div class="station-info">MicroLogix .30 · 192.168.0.30 · ENIP</div>
     <div class="station-svg">
-      <svg width="160" height="60" viewBox="0 0 160 60">
-        <!-- Conveyor frame -->
-        <rect x="5" y="35" width="150" height="4" rx="2" fill="#484f58"/>
-        <circle cx="15" cy="37" r="8" fill="#30363d" stroke="#484f58" stroke-width="2"/>
-        <circle cx="145" cy="37" r="8" fill="#30363d" stroke="#484f58" stroke-width="2"/>
-        <!-- Belt -->
-        <line x1="15" y1="29" x2="145" y2="29" stroke="#58a6ff" stroke-width="3"
-              class="conveyor-belt" id="belt-mlgx30"/>
-        <!-- Box on belt -->
-        <rect x="70" y="14" width="20" height="15" rx="2" fill="#58a6ff" opacity="0.6" id="box-mlgx30"/>
+      <svg width="190" height="100" viewBox="0 0 190 100">
+        <!-- Conveyor frame / side rails -->
+        <rect x="10" y="58" width="170" height="6" rx="3" fill="#3d444d"/>
+        <rect x="10" y="72" width="170" height="6" rx="3" fill="#3d444d"/>
+        <!-- Belt surface -->
+        <line x1="18" y1="64" x2="172" y2="64" stroke="#58a6ff" stroke-width="8" stroke-linecap="round"
+              class="belt-line" id="belt-mlgx30" opacity="0.7"/>
+        <!-- Rollers -->
+        <g class="roller" id="roller1-mlgx30">
+          <circle cx="25" cy="68" r="10" fill="#21262d" stroke="#484f58" stroke-width="2"/>
+          <line x1="25" y1="59" x2="25" y2="77" stroke="#484f58" stroke-width="1"/>
+          <line x1="16" y1="68" x2="34" y2="68" stroke="#484f58" stroke-width="1"/>
+        </g>
+        <g class="roller" id="roller2-mlgx30">
+          <circle cx="165" cy="68" r="10" fill="#21262d" stroke="#484f58" stroke-width="2"/>
+          <line x1="165" y1="59" x2="165" y2="77" stroke="#484f58" stroke-width="1"/>
+          <line x1="156" y1="68" x2="174" y2="68" stroke="#484f58" stroke-width="1"/>
+        </g>
+        <!-- Middle roller -->
+        <circle cx="95" cy="78" r="5" fill="#21262d" stroke="#484f58" stroke-width="1.5"/>
+        <!-- Support legs -->
+        <rect x="20" y="78" width="4" height="18" rx="1" fill="#3d444d"/>
+        <rect x="166" y="78" width="4" height="18" rx="1" fill="#3d444d"/>
+        <rect x="93" y="83" width="4" height="13" rx="1" fill="#3d444d"/>
+        <!-- Floor -->
+        <line x1="5" y1="96" x2="185" y2="96" stroke="#30363d" stroke-width="2"/>
+        <!-- Package on belt -->
+        <rect x="75" y="36" width="28" height="22" rx="3" fill="#58a6ff" opacity="0.5" stroke="#58a6ff" stroke-width="1"/>
+        <line x1="79" y1="42" x2="99" y2="42" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
+        <line x1="79" y1="47" x2="95" y2="47" stroke="#fff" stroke-width="0.5" opacity="0.3"/>
+        <!-- Arrow indicator -->
+        <polygon points="145,45 155,50 145,55" fill="#58a6ff" opacity="0.4" id="arrow-indicator-mlgx30"/>
       </svg>
     </div>
     <div class="lights" id="lights-mlgx30"></div>
@@ -255,25 +316,52 @@
 
   <div class="arrow" id="arrow-0">→</div>
 
-  <!-- Station: Drill Press (.31) -->
+  <!-- ============== DRILL PRESS (.31) ============== -->
   <div class="station" id="station-mlgx31">
     <div class="station-header">
-      <span class="station-name" style="color:#3fb950">Drill Press</span>
+      <span class="station-name" style="color:#3fb950">🔩 Drill Press</span>
       <div class="station-dot" id="dot-mlgx31"></div>
     </div>
-    <div class="station-info">MicroLogix .31 &middot; 192.168.0.31</div>
+    <div class="station-info">MicroLogix .31 · 192.168.0.31 · ENIP</div>
     <div class="station-svg">
-      <svg width="160" height="60" viewBox="0 0 160 60">
-        <!-- Drill frame -->
-        <rect x="70" y="5" width="20" height="8" rx="2" fill="#484f58"/>
-        <rect x="78" y="13" width="4" height="25" fill="#8b949e"/>
-        <!-- Drill bit (spinning) -->
-        <g class="drill-bit" id="drill-mlgx31">
-          <polygon points="80,38 74,50 86,50" fill="#3fb950"/>
+      <svg width="190" height="100" viewBox="0 0 190 100">
+        <!-- Machine body / column -->
+        <rect x="85" y="2" width="20" height="14" rx="3" fill="#484f58"/>
+        <rect x="80" y="2" width="30" height="6" rx="2" fill="#3d444d"/>
+        <!-- Column -->
+        <rect x="92" y="8" width="6" height="50" fill="#3d444d"/>
+        <!-- Motor housing -->
+        <rect x="78" y="8" width="34" height="16" rx="4" fill="#484f58" stroke="#58a6ff" stroke-width="0.5"/>
+        <!-- Drill head (animated up/down) -->
+        <g class="drill-head" id="drillhead-mlgx31">
+          <!-- Chuck -->
+          <rect x="88" y="24" width="14" height="8" rx="2" fill="#6e7681"/>
+          <!-- Drill bit (animated spin) -->
+          <g class="drill-bit-spin" id="drillbit-mlgx31">
+            <rect x="93" y="32" width="4" height="18" rx="1" fill="#8b949e"/>
+            <polygon points="95,50 90,58 100,58" fill="#3fb950"/>
+            <!-- Flutes -->
+            <line x1="93" y1="35" x2="97" y2="39" stroke="#aaa" stroke-width="0.5"/>
+            <line x1="93" y1="40" x2="97" y2="44" stroke="#aaa" stroke-width="0.5"/>
+            <line x1="93" y1="45" x2="97" y2="49" stroke="#aaa" stroke-width="0.5"/>
+          </g>
         </g>
-        <!-- Work surface -->
-        <rect x="20" y="50" width="120" height="4" rx="2" fill="#484f58"/>
-        <rect x="65" y="42" width="30" height="8" rx="1" fill="#30363d" stroke="#3fb950" stroke-width="1"/>
+        <!-- Work table -->
+        <rect x="55" y="68" width="80" height="6" rx="2" fill="#484f58"/>
+        <rect x="65" y="74" width="60" height="3" rx="1" fill="#3d444d"/>
+        <!-- Workpiece -->
+        <rect x="80" y="60" width="30" height="8" rx="2" fill="#30363d" stroke="#3fb950" stroke-width="1"/>
+        <circle cx="95" cy="64" r="2" fill="#3fb950" opacity="0.5"/>
+        <!-- Base -->
+        <rect x="60" y="77" width="70" height="5" rx="2" fill="#3d444d"/>
+        <!-- Table legs -->
+        <rect x="70" y="82" width="4" height="14" rx="1" fill="#3d444d"/>
+        <rect x="116" y="82" width="4" height="14" rx="1" fill="#3d444d"/>
+        <!-- Floor -->
+        <line x1="5" y1="96" x2="185" y2="96" stroke="#30363d" stroke-width="2"/>
+        <!-- Speed dial -->
+        <circle cx="30" cy="30" r="12" fill="#21262d" stroke="#484f58" stroke-width="1.5"/>
+        <line x1="30" y1="30" x2="30" y2="20" stroke="#3fb950" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
     </div>
     <div class="lights" id="lights-mlgx31"></div>
@@ -281,29 +369,53 @@
 
   <div class="arrow" id="arrow-1">→</div>
 
-  <!-- Station: Assembly (S7) -->
+  <!-- ============== ASSEMBLY (S7) ============== -->
   <div class="station" id="station-s7">
     <div class="station-header">
-      <span class="station-name" style="color:#39d2c0">Assembly</span>
+      <span class="station-name" style="color:#39d2c0">🤖 Assembly</span>
       <div class="station-dot" id="dot-s7"></div>
     </div>
-    <div class="station-info">Siemens S7-1200 &middot; 192.168.0.2</div>
+    <div class="station-info">Siemens S7-1200 · 192.168.0.2 · S7comm</div>
     <div class="station-svg">
-      <svg width="160" height="60" viewBox="0 0 160 60">
-        <!-- Robot base -->
-        <rect x="70" y="50" width="20" height="6" rx="2" fill="#484f58"/>
-        <rect x="78" y="30" width="4" height="20" fill="#8b949e"/>
-        <!-- Robot arm -->
-        <g class="robot-arm" id="arm-s7">
-          <rect x="60" y="22" width="40" height="6" rx="3" fill="#39d2c0"/>
-          <circle cx="60" cy="25" r="4" fill="#39d2c0"/>
-          <circle cx="100" cy="25" r="4" fill="#39d2c0"/>
+      <svg width="190" height="100" viewBox="0 0 190 100">
+        <!-- Robot base plate -->
+        <rect x="75" y="80" width="40" height="8" rx="3" fill="#484f58"/>
+        <rect x="80" y="88" width="30" height="4" rx="1" fill="#3d444d"/>
+        <!-- Robot column -->
+        <rect x="90" y="50" width="10" height="30" rx="2" fill="#6e7681"/>
+        <!-- Shoulder joint -->
+        <circle cx="95" cy="50" r="7" fill="#484f58" stroke="#39d2c0" stroke-width="1.5"/>
+        <!-- Upper arm (animated swing) -->
+        <g class="robot-arm" id="arm-s7" style="transform-origin: 95px 50px;">
+          <!-- Upper arm -->
+          <rect x="60" y="44" width="35" height="8" rx="4" fill="#39d2c0" opacity="0.9"/>
+          <!-- Elbow joint -->
+          <circle cx="60" cy="48" r="5" fill="#484f58" stroke="#39d2c0" stroke-width="1"/>
+          <!-- Forearm -->
+          <rect x="38" y="42" width="24" height="6" rx="3" fill="#39d2c0" opacity="0.7"/>
+          <!-- Wrist -->
+          <circle cx="38" cy="45" r="3.5" fill="#484f58" stroke="#39d2c0" stroke-width="1"/>
           <!-- Gripper -->
-          <line x1="58" y1="29" x2="54" y2="38" stroke="#39d2c0" stroke-width="2"/>
-          <line x1="62" y1="29" x2="66" y2="38" stroke="#39d2c0" stroke-width="2"/>
+          <g class="gripper" id="grip-s7" style="transform-origin: 38px 45px;">
+            <line x1="35" y1="48" x2="28" y2="58" stroke="#39d2c0" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="41" y1="48" x2="48" y2="58" stroke="#39d2c0" stroke-width="2.5" stroke-linecap="round"/>
+            <!-- Fingertips -->
+            <rect x="25" y="57" width="6" height="3" rx="1" fill="#39d2c0"/>
+            <rect x="45" y="57" width="6" height="3" rx="1" fill="#39d2c0"/>
+          </g>
         </g>
-        <!-- Part on table -->
-        <rect x="30" y="50" width="100" height="4" rx="2" fill="#484f58"/>
+        <!-- Work surface -->
+        <rect x="20" y="76" width="60" height="4" rx="2" fill="#3d444d"/>
+        <!-- Parts on table -->
+        <rect x="30" y="68" width="12" height="8" rx="1" fill="#30363d" stroke="#39d2c0" stroke-width="0.8"/>
+        <rect x="50" y="70" width="8" height="6" rx="1" fill="#30363d" stroke="#39d2c0" stroke-width="0.8"/>
+        <!-- Control panel -->
+        <rect x="140" y="40" width="30" height="40" rx="3" fill="#21262d" stroke="#484f58" stroke-width="1"/>
+        <circle cx="155" cy="52" r="3" fill="#39d2c0" opacity="0.5"/>
+        <circle cx="155" cy="62" r="3" fill="#d29922" opacity="0.5"/>
+        <rect x="146" y="70" width="18" height="4" rx="1" fill="#30363d"/>
+        <!-- Floor -->
+        <line x1="5" y1="96" x2="185" y2="96" stroke="#30363d" stroke-width="2"/>
       </svg>
     </div>
     <div class="lights" id="lights-s7"></div>
@@ -311,29 +423,50 @@
 
   <div class="arrow" id="arrow-2">→</div>
 
-  <!-- Station: Paint & QC (Phoenix) -->
+  <!-- ============== PAINT & QC (Phoenix) ============== -->
   <div class="station" id="station-phx">
     <div class="station-header">
-      <span class="station-name" style="color:#d29922">Paint & QC</span>
+      <span class="station-name" style="color:#d29922">🎨 Paint & QC</span>
       <div class="station-dot" id="dot-phx"></div>
     </div>
-    <div class="station-info">Phoenix Contact &middot; 192.168.0.3</div>
+    <div class="station-info">Phoenix Contact · 192.168.0.3 · Modbus</div>
     <div class="station-svg">
-      <svg width="160" height="60" viewBox="0 0 160 60">
-        <!-- Spray nozzle -->
-        <rect x="72" y="5" width="16" height="12" rx="3" fill="#484f58"/>
-        <!-- Spray particles -->
-        <g class="spray" id="spray-phx">
-          <circle cx="75" cy="28" r="2" fill="#d29922" opacity="0.7"/>
-          <circle cx="80" cy="32" r="3" fill="#d29922" opacity="0.5"/>
-          <circle cx="85" cy="28" r="2" fill="#d29922" opacity="0.7"/>
-          <circle cx="78" cy="36" r="2.5" fill="#d29922" opacity="0.4"/>
-          <circle cx="82" cy="38" r="2" fill="#d29922" opacity="0.6"/>
-          <circle cx="76" cy="42" r="1.5" fill="#d29922" opacity="0.3"/>
-          <circle cx="84" cy="42" r="1.5" fill="#d29922" opacity="0.3"/>
+      <svg width="190" height="100" viewBox="0 0 190 100">
+        <!-- Paint booth walls -->
+        <rect x="30" y="10" width="130" height="70" rx="5" fill="none" stroke="#3d444d" stroke-width="2" stroke-dasharray="4 3"/>
+        <!-- Booth ceiling -->
+        <rect x="35" y="10" width="120" height="6" rx="2" fill="#3d444d"/>
+        <!-- Spray arm / rail -->
+        <rect x="50" y="16" width="90" height="3" rx="1" fill="#484f58"/>
+        <!-- Nozzle housing -->
+        <rect x="82" y="16" width="26" height="14" rx="4" fill="#484f58" stroke="#d29922" stroke-width="1"/>
+        <g class="nozzle-glow" id="nozzle-phx">
+          <rect x="88" y="30" width="4" height="6" rx="1" fill="#d29922"/>
+          <rect x="96" y="30" width="4" height="6" rx="1" fill="#d29922"/>
         </g>
-        <!-- Part being painted -->
-        <rect x="60" y="46" width="40" height="10" rx="2" fill="#30363d" stroke="#d29922" stroke-width="1"/>
+        <!-- Spray droplets -->
+        <g id="spray-phx">
+          <circle cx="85" cy="40" r="2"   class="spray-drop" fill="#d29922" opacity="0.7"/>
+          <circle cx="90" cy="42" r="2.5" class="spray-drop" fill="#d29922" opacity="0.6"/>
+          <circle cx="95" cy="39" r="2"   class="spray-drop" fill="#d29922" opacity="0.8"/>
+          <circle cx="100" cy="41" r="1.8" class="spray-drop" fill="#d29922" opacity="0.5"/>
+          <circle cx="88" cy="46" r="1.5" class="spray-drop" fill="#d29922" opacity="0.4"/>
+          <circle cx="97" cy="47" r="1.5" class="spray-drop" fill="#d29922" opacity="0.4"/>
+          <circle cx="92" cy="50" r="2"   class="spray-drop" fill="#d29922" opacity="0.3"/>
+        </g>
+        <!-- Part being painted (on turntable) -->
+        <ellipse cx="95" cy="70" rx="25" ry="4" fill="#30363d"/>
+        <rect x="80" y="56" width="30" height="14" rx="3" fill="#30363d" stroke="#d29922" stroke-width="1.5"/>
+        <!-- Paint gradient on part -->
+        <rect x="82" y="58" width="10" height="10" rx="2" fill="#d29922" opacity="0.3"/>
+        <!-- Floor -->
+        <line x1="5" y1="96" x2="185" y2="96" stroke="#30363d" stroke-width="2"/>
+        <!-- QC badge -->
+        <g transform="translate(155,55)">
+          <rect x="0" y="0" width="28" height="28" rx="4" fill="#21262d" stroke="#3fb950" stroke-width="1"/>
+          <text x="14" y="12" text-anchor="middle" font-size="7" fill="#3fb950" font-weight="bold">QC</text>
+          <text x="14" y="22" text-anchor="middle" font-size="10" fill="#3fb950">✓</text>
+        </g>
       </svg>
     </div>
     <div class="lights" id="lights-phx"></div>
@@ -342,7 +475,7 @@
 </div>
 
 <div class="footer">
-  Trainer HMI &middot; 4 PLCs &middot; ENIP / S7comm / Modbus TCP &middot; Polls every 500ms
+  Trainer HMI · 4 PLCs · ENIP / S7comm / Modbus TCP · Random process mode · Polls every 500ms
 </div>
 
 <script>
@@ -357,7 +490,6 @@ const PLC_DEVICE_COUNTS = { mlgx30: 5, mlgx31: 5, s7: 5, phx: 2 };
 
 let processRunning = false;
 
-// Build light dots
 function initLights() {
   PLC_IDS.forEach(pid => {
     const container = document.getElementById("lights-" + pid);
@@ -375,13 +507,16 @@ function initLights() {
   });
 }
 
-// Poll state
+function setAnimClass(id, baseClass, running) {
+  const el = document.getElementById(id);
+  if (el) el.className.baseVal = running ? baseClass + " running" : baseClass;
+}
+
 async function pollState() {
   try {
     const resp = await fetch("/api/state");
     const data = await resp.json();
 
-    // Process
     processRunning = data.process_running;
     const btn = document.getElementById("processBtn");
     if (processRunning) {
@@ -394,25 +529,20 @@ async function pollState() {
     document.getElementById("stageLabel").textContent = data.process_stage || "Idle";
     document.getElementById("progressFill").style.width = data.process_step + "%";
 
-    // Count connected
     let connCount = 0;
-    let total = PLC_IDS.length;
 
     PLC_IDS.forEach((pid, pIdx) => {
       const plc = data.plcs[pid];
       if (!plc) return;
 
-      // Connection dot
       const dot = document.getElementById("dot-" + pid);
       dot.className = plc.connected ? "station-dot on" : "station-dot";
       if (plc.connected) connCount++;
 
-      // Station active glow
       const station = document.getElementById("station-" + pid);
       const anyOn = plc.outputs.some(v => v);
       station.className = anyOn ? "station active" : "station";
 
-      // Lights
       plc.outputs.forEach((on, i) => {
         const light = document.getElementById(`light-${pid}-${i}`);
         if (light) {
@@ -421,22 +551,25 @@ async function pollState() {
         }
       });
 
-      // Animations
+      // Animate equipment based on any output being on
       if (pid === "mlgx30") {
-        const belt = document.getElementById("belt-mlgx30");
-        belt.className.baseVal = anyOn ? "conveyor-belt running" : "conveyor-belt";
+        setAnimClass("belt-mlgx30", "belt-line", anyOn);
+        setAnimClass("roller1-mlgx30", "roller", anyOn);
+        setAnimClass("roller2-mlgx30", "roller", anyOn);
       } else if (pid === "mlgx31") {
-        const drill = document.getElementById("drill-mlgx31");
-        drill.className.baseVal = anyOn ? "drill-bit running" : "drill-bit";
+        setAnimClass("drillhead-mlgx31", "drill-head", anyOn);
+        setAnimClass("drillbit-mlgx31", "drill-bit-spin", anyOn);
       } else if (pid === "s7") {
-        const arm = document.getElementById("arm-s7");
-        arm.className.baseVal = anyOn ? "robot-arm running" : "robot-arm";
+        setAnimClass("arm-s7", "robot-arm", anyOn);
+        setAnimClass("grip-s7", "gripper", anyOn);
       } else if (pid === "phx") {
-        const spray = document.getElementById("spray-phx");
-        spray.className.baseVal = anyOn ? "spray running" : "spray";
+        setAnimClass("nozzle-phx", "nozzle-glow", anyOn);
+        // Spray drops
+        document.querySelectorAll("#spray-phx .spray-drop").forEach(el => {
+          el.className.baseVal = anyOn ? "spray-drop running" : "spray-drop";
+        });
       }
 
-      // Arrows
       if (pIdx < PLC_IDS.length - 1) {
         const arrow = document.getElementById("arrow-" + pIdx);
         if (arrow) arrow.className = anyOn ? "arrow active" : "arrow";
@@ -444,7 +577,7 @@ async function pollState() {
     });
 
     document.getElementById("connStatus").textContent =
-      `${connCount}/${total} PLCs connected`;
+      `${connCount}/${PLC_IDS.length} PLCs connected`;
 
   } catch (err) {
     document.getElementById("connStatus").textContent = "Connection error: " + err.message;
@@ -461,7 +594,6 @@ async function toggleProcess() {
 }
 
 async function toggleCommand(pid, devIdx) {
-  // Read current state from the light
   const light = document.getElementById(`light-${pid}-${devIdx}`);
   const isOn = light.classList.contains("on");
   await fetch("/api/command", {
@@ -471,7 +603,6 @@ async function toggleCommand(pid, devIdx) {
   });
 }
 
-// Init
 initLights();
 setInterval(pollState, 500);
 pollState();

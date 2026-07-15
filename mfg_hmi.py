@@ -557,15 +557,12 @@ class MfgHMI:
         self.clear_all_commands()
 
     def process_tick(self):
+        """Random mode: each tick, every output independently has a chance
+        of toggling on or off, producing organic factory-like activity
+        instead of a predictable KITT sweep."""
         if not self.process_active:
             return
 
-        # Total outputs across all PLCs
-        total_outputs = sum(len(plc["devices"]) for plc in PLCS)  # 5+5+5+2 = 17
-        cycle_len = total_outputs * 2 + 4  # forward sweep + reverse sweep + pauses
-
-        step = self.process_step % cycle_len
-        phase = self.process_step // cycle_len
         stage_names = [
             "Raw Material Loading",
             "Machining Station A",
@@ -576,48 +573,72 @@ class MfgHMI:
             "Packaging",
             "Shipping",
         ]
-        stage_name = stage_names[phase % len(stage_names)]
 
-        # Update progress bar
-        progress_frac = (step + 1) / cycle_len
+        # Initialize random-mode state on first tick
+        if not hasattr(self, '_random_current'):
+            self._random_current = {}
+            for plc in PLCS:
+                for dev in plc["devices"]:
+                    self._random_current[(plc["ip"], dev["idx"])] = False
+            self._stage_ticks = random.randint(15, 40)
+            self._stage_step = 0
+
+        stage_name = stage_names[(self.process_step // self._stage_ticks) % len(stage_names)]
+
+        # Progress bar
+        progress_frac = (self._stage_step + 1) / self._stage_ticks
         bar_width = int(696 * progress_frac)
         self.progress_canvas.coords(self.progress_bar, 2, 2, 2 + bar_width, 22)
 
-        # Build a flat list of all (plc, dev_idx) pairs
-        all_points = []
+        # Count how many are on for stage label color
+        on_count = sum(1 for v in self._random_current.values() if v)
+        if on_count > 10:
+            self.stage_label.configure(fg=AMBER)
+            self.stage_var.set("● {} — High activity".format(stage_name))
+        elif on_count > 5:
+            self.stage_label.configure(fg=GREEN)
+            self.stage_var.set("▶ {} — Running".format(stage_name))
+        elif on_count > 0:
+            self.stage_label.configure(fg=BLUE)
+            self.stage_var.set("▷ {} — Low activity".format(stage_name))
+        else:
+            self.stage_label.configure(fg=TEAL)
+            self.stage_var.set("○ {} — Transitioning...".format(stage_name))
+
+        # Each tick, randomly toggle some outputs
         for plc in PLCS:
             for dev in plc["devices"]:
-                all_points.append((plc, dev["idx"]))
+                key = (plc["ip"], dev["idx"])
+                r = random.random()
+                if self._random_current[key]:
+                    if r < 0.30:  # 30% chance to turn off
+                        self._random_current[key] = False
+                        self.write_command(plc, dev["idx"], False)
+                else:
+                    if r < 0.35:  # 35% chance to turn on
+                        self._random_current[key] = True
+                        self.write_command(plc, dev["idx"], True)
 
-        # Forward sweep: light one at a time
-        if step < total_outputs:
-            self.stage_var.set("▶ {} — Step {}/{}".format(stage_name, step + 1, total_outputs))
-            self.stage_label.configure(fg=GREEN)
-            for i, (plc, didx) in enumerate(all_points):
-                self.write_command(plc, didx, i == step)
-        # Pause: all on
-        elif step < total_outputs + 2:
-            self.stage_var.set("● {} — Processing...".format(stage_name))
-            self.stage_label.configure(fg=AMBER)
-            for plc, didx in all_points:
-                self.write_command(plc, didx, True)
-        # Reverse sweep
-        elif step < total_outputs * 2 + 2:
-            rev_step = step - (total_outputs + 2)
-            rev_idx = total_outputs - 1 - rev_step
-            self.stage_var.set("◀ {} — Return {}/{}".format(stage_name, rev_step + 1, total_outputs))
-            self.stage_label.configure(fg=BLUE)
-            for i, (plc, didx) in enumerate(all_points):
-                self.write_command(plc, didx, i == rev_idx)
-        # Pause: all off
-        else:
+        self._stage_step += 1
+        self.process_step += 1
+
+        # At stage boundary: brief all-off reset
+        if self._stage_step >= self._stage_ticks:
+            self._stage_step = 0
+            self._stage_ticks = random.randint(15, 40)
+            for plc in PLCS:
+                for dev in plc["devices"]:
+                    key = (plc["ip"], dev["idx"])
+                    self._random_current[key] = False
+                    self.write_command(plc, dev["idx"], False)
             self.stage_var.set("○ {} — Complete ✓".format(stage_name))
             self.stage_label.configure(fg=TEAL)
-            for plc, didx in all_points:
-                self.write_command(plc, didx, False)
+            # Longer pause between stages
+            self.process_job = self.root.after(800, self.process_tick)
+            return
 
-        self.process_step += 1
-        self.process_job = self.root.after(self.get_step_ms(), self.process_tick)
+        delay = random.randint(150, 450)
+        self.process_job = self.root.after(delay, self.process_tick)
 
     # ---------- Cleanup ----------
     def close(self):
