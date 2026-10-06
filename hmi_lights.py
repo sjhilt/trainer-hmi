@@ -19,6 +19,8 @@ import struct
 import sys
 import tkinter as tk
 
+from hmi_branding import apply_window_branding, configure_process_branding
+
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -178,6 +180,7 @@ class HMIApp:
         self._random_job = None
 
         self.root.title("PLC HMI \u2013 {} : {}".format(conn.host, conn.port))
+        apply_window_branding(self.root)
         self.root.configure(bg=BG_COLOR)
         self.root.resizable(False, False)
 
@@ -369,6 +372,7 @@ class HMIApp:
 
 def main():
     args = parse_args()
+    configure_process_branding()
 
     conn = ModbusConnection(
         host=args.host,

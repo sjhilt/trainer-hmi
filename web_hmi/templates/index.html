@@ -4,72 +4,238 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Manufacturing Process HMI</title>
+<link rel="icon" type="image/png" sizes="256x256" href="{{ url_for('static', filename='trainer-cell.png') }}">
+<link rel="shortcut icon" href="{{ url_for('static', filename='trainer-cell.ico') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='trainer-cell.png') }}">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: 'Segoe UI', system-ui, sans-serif;
-    background: #0d1117;
-    color: #f0f6fc;
+    background: #bfc4c8;
+    color: #111;
     min-height: 100vh;
   }
 
   .header {
-    background: #161b22;
-    border-bottom: 1px solid #30363d;
-    padding: 16px 24px;
+    background: #2f3b45;
+    color: #fff;
+    border-bottom: 2px solid #1e252b;
+    padding: 10px 18px;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
-  .header h1 { font-size: 22px; font-weight: 700; }
-  .header h1 span { color: #58a6ff; }
-  .header .status { font-size: 13px; color: #8b949e; }
+  .brand-block { display: flex; align-items: center; gap: 10px; }
+  .brand-icon { width: 38px; height: 38px; border-radius: 7px; box-shadow: 0 0 0 1px #66737d; }
+  .brand-kicker { font-size: 10px; letter-spacing: 1.4px; color: #aeb8c0; font-weight: 700; }
+  .header h1 { font-size: 18px; font-weight: 700; line-height: 1.1; }
+  .header h1 span { color: #fff; }
+  .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .status-pill {
+    border: 1px solid #71808c; background: #26313a; color: #e8edf0;
+    padding: 5px 9px; font: 700 11px Consolas, monospace; min-width: 90px; text-align: center;
+  }
+  .status-pill.good { background: #294d31; border-color: #5f8b66; }
+  .status-pill.warn { background: #65501f; border-color: #a88b3d; }
+  .status-pill.alarm { background: #7a2424; border-color: #bd5a5a; }
+  .status-pill.mode { background: #253e55; border-color: #5d7890; }
+  .status-pill.clock { min-width: 150px; color: #cbd4da; }
+
+  .interlock-strip {
+    display: none; background: #f2dfad; color: #3f3213; border-bottom: 1px solid #a98a38;
+    padding: 7px 18px; font-size: 12px; font-weight: 700;
+  }
+  .interlock-strip.show { display: block; }
 
   .process-bar {
-    background: #161b22;
-    border-bottom: 1px solid #30363d;
-    padding: 12px 24px;
+    background: #d9dde1;
+    border-bottom: 1px solid #9aa1a8;
+    padding: 10px 20px;
     display: flex;
     align-items: center;
     gap: 16px;
   }
+  .mode-control { display: flex; border: 1px solid #60676c; }
+  .mode-btn {
+    border: 0; border-right: 1px solid #60676c; background: #eef0f2; color: #25292c;
+    padding: 7px 12px; font-size: 12px; font-weight: 800; cursor: pointer;
+  }
+  .mode-btn:last-child { border-right: 0; }
+  .mode-btn.active { background: #2f3b45; color: #fff; }
+  .mode-btn:disabled { opacity: .55; cursor: not-allowed; }
   .process-btn {
-    padding: 8px 24px;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
+    padding: 7px 20px;
+    border: 1px solid #333;
+    border-radius: 2px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     color: #fff;
-    transition: all 0.2s;
   }
-  .process-btn.run { background: #238636; }
-  .process-btn.run:hover { background: #2ea043; }
-  .process-btn.stop { background: #da3633; }
-  .process-btn.stop:hover { background: #e5534b; }
+  .process-btn.run { background: #2f6f3e; }
+  .process-btn.run:hover { background: #2f6f3e; }
+  .process-btn.stop { background: #8b2f2f; }
+  .process-btn.stop:hover { background: #8b2f2f; }
+  .process-btn.fault { background: #b3261e; }
+  .process-btn:disabled { opacity: 0.65; cursor: wait; }
+  .fault-banner {
+    display: none;
+    padding: 9px 20px;
+    background: #8b1e1e;
+    color: #fff;
+    border-bottom: 2px solid #571111;
+    font-size: 13px;
+    font-weight: 700;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .fault-banner.show { display: flex; }
+  .fault-banner button {
+    padding: 5px 12px;
+    border: 1px solid #fff;
+    background: #fff;
+    color: #681515;
+    font-weight: 700;
+    cursor: pointer;
+  }
   .stage-label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
-    color: #3fb950;
-    min-width: 200px;
+    color: #111;
+    min-width: 240px;
   }
   .progress-track {
     flex: 1;
-    height: 10px;
-    background: #30363d;
-    border-radius: 5px;
+    height: 14px;
+    background: #b7bcc1;
+    border: 1px solid #7a7f84;
+    border-radius: 0;
     overflow: hidden;
   }
   .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, #238636, #3fb950);
-    border-radius: 5px;
-    transition: width 0.3s;
+    background: #2f7d32;
+    border-radius: 0;
+    transition: width 0.2s;
     width: 0%;
   }
 
+  .speed-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #333;
+    white-space: nowrap;
+  }
+  .speed-control input {
+    width: 72px;
+    padding: 5px 6px;
+    border: 1px solid #7a7f84;
+    background: #eef0f2;
+    color: #111;
+    font-size: 12px;
+  }
+  .speed-control button {
+    padding: 5px 10px;
+    border: 1px solid #333;
+    background: #2f3b45;
+    color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 16px 0;
+    justify-content: center;
+  }
+  .tab-btn {
+    padding: 8px 18px;
+    border: 1px solid #7a7f84;
+    border-bottom: none;
+    background: #d9dde1;
+    color: #111;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .tab-btn.active {
+    background: #e6e6e6;
+    color: #2f3b45;
+  }
+  .tab-panel.hidden { display: none; }
+
+  .single-line-panel {
+    padding: 12px;
+    display: flex;
+    justify-content: center;
+    background: #c8ccd0;
+  }
+  .single-line-card {
+    width: min(1280px, 100%);
+    background: #d7d2da;
+    border: 1px solid #7a7f84;
+    padding: 10px;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+  }
+  .single-line-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0 4px 8px;
+    font-weight: 700;
+    color: #111;
+  }
+  .single-line-title span {
+    font-size: 12px;
+    color: #1c43d6;
+    font-weight: 700;
+  }
+  .single-line-svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #d6d1d9;
+    border: 1px solid #9aa1a8;
+  }
+  .sl-equip {
+    fill: url(#vesselGradient);
+    stroke: #4b4f54;
+    stroke-width: 2.2;
+    transition: filter 0.2s, stroke 0.2s;
+  }
+  .sl-equip.active { stroke: #1c43d6; filter: drop-shadow(0 0 5px rgba(28, 67, 214, 0.65)); }
+  .sl-equip.status { stroke: #9a6a20; filter: drop-shadow(0 0 4px rgba(154, 106, 32, 0.45)); }
+  .sl-pipe { fill: none; stroke: #7c858c; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+  .sl-pipe.process { stroke: #21a8d8; }
+  .sl-pipe.return { stroke: #b69768; stroke-width: 4; }
+  .sl-pipe.vent { stroke: #6b747c; stroke-width: 5; }
+  .sl-pipe.active {
+    stroke-dasharray: 14 8;
+    animation: pipeFlow 0.9s linear infinite;
+    filter: drop-shadow(0 0 3px rgba(33,168,216,0.75));
+  }
+  @keyframes pipeFlow { to { stroke-dashoffset: -44; } }
+  .sl-label { font: 700 13px 'Segoe UI', system-ui, sans-serif; fill: #111; }
+  .sl-small { font: 10px 'Segoe UI', system-ui, sans-serif; fill: #222; }
+  .sl-readout { font: 700 12px 'Segoe UI', system-ui, sans-serif; fill: #004cff; }
+  .sl-readout-small { font: 700 10px 'Segoe UI', system-ui, sans-serif; fill: #004cff; }
+  .sl-state { font: 700 11px 'Segoe UI', system-ui, sans-serif; fill: #004cff; }
+  .sl-valve { fill: #c80000; stroke: #5a0000; stroke-width: 1.5; transition: fill 0.15s, filter 0.15s; }
+  .sl-valve.on { fill: #ff1c1c; filter: drop-shadow(0 0 5px rgba(255,0,0,0.8)); }
+  .sl-status-dot { fill: #697178; stroke: #333; stroke-width: 1.5; }
+  .sl-status-dot.on { fill: #21a8d8; filter: drop-shadow(0 0 4px rgba(33,168,216,0.8)); }
+  .sl-instrument { fill: #ebe8ee; stroke: #4b4f54; stroke-width: 1.4; }
+  .sl-panel-box { fill: rgba(238,240,232,0.75); stroke: #9aa1a8; stroke-width: 1; }
+  .sl-product { fill: #b9a064; stroke: #5f5030; stroke-width: 2; transition: transform 0.3s, opacity 0.2s; }
+  .sl-fill { transition: height 0.25s, y 0.25s, opacity 0.25s; }
+
   .factory {
-    padding: 24px;
+    padding: 16px;
     display: flex;
     gap: 12px;
     align-items: flex-start;
@@ -78,17 +244,18 @@
   }
 
   .station {
-    background: #161b22;
-    border: 1px solid #30363d;
-    border-radius: 12px;
+    background: #e6e6e6;
+    border: 1px solid #7a7f84;
+    border-radius: 0;
     width: 210px;
     overflow: hidden;
-    transition: border-color 0.3s, box-shadow 0.3s;
   }
-  .station.active { border-color: #3fb950; box-shadow: 0 0 16px rgba(63,185,80,0.2); }
+  .station.active { border-color: #2f7d32; }
   .station-header {
+    background: #2f3b45;
+    color: #fff;
     padding: 10px 14px;
-    border-bottom: 1px solid #30363d;
+    border-bottom: 1px solid #1e252b;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -97,57 +264,89 @@
   .station-dot {
     width: 10px; height: 10px;
     border-radius: 50%;
-    background: #f85149;
-    transition: background 0.3s;
+    background: #8b2f2f;
   }
-  .station-dot.on { background: #3fb950; }
+  .station-dot.on { background: #2f7d32; }
   .station-info {
     padding: 6px 14px;
     font-size: 11px;
-    color: #8b949e;
-    border-bottom: 1px solid #21262d;
+    color: #333;
+    border-bottom: 1px solid #a5aaaf;
   }
+  .station-health { display: block; margin-top: 3px; font: 700 10px Consolas, monospace; color: #5a6268; }
 
   .station-svg {
     padding: 10px 8px;
     display: flex;
     justify-content: center;
     min-height: 110px;
-    background: #0d1117;
+    background: #d4d8dc;
   }
 
   .lights {
     padding: 10px 14px;
-    display: flex;
-    gap: 8px;
-    justify-content: center;
-    flex-wrap: wrap;
+    display: grid;
+    gap: 5px;
   }
+  .point-row {
+    display: grid; grid-template-columns: minmax(76px, 1fr) 38px 38px;
+    gap: 6px; align-items: center; min-height: 30px;
+    border-bottom: 1px solid #c1c5c8; padding: 2px 0;
+  }
+  .point-row:last-child { border-bottom: 0; }
+  .point-name { font-size: 10px; font-weight: 700; line-height: 1.1; color: #292d30; }
+  .point-name small { display: block; color: #697178; font: 9px Consolas, monospace; margin-top: 2px; }
+  .point-head { display: grid; grid-template-columns: minmax(76px, 1fr) 38px 38px; gap: 6px; color: #596168; font-size: 8px; font-weight: 800; text-align: center; }
   .light {
-    width: 28px; height: 28px;
+    width: 23px; height: 23px;
     border-radius: 50%;
-    background: #30363d;
-    border: 2px solid #484f58;
+    background: #697178;
+    border: 2px solid #404850;
     cursor: pointer;
-    transition: all 0.15s;
+    justify-self: center;
   }
-  .light.on {
-    border-color: #fff3;
-    box-shadow: 0 0 10px var(--glow);
+  .light.on { border-color: #222; }
+  .light.command { border-radius: 3px; background: #d5d8da; }
+  .light.command.on { background: #315c80; border-color: #17344c; }
+  .light.command.heartbeat { background: #9a6a20; border-color: #5f4215; }
+  .light.feedback.on { background: #2f7d32; border-color: #17451a; }
+  .light.disabled { opacity: .45; cursor: not-allowed; }
+  .light:hover { outline: 1px solid #222; }
+
+  .legend-bar {
+    display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+    width: min(1280px, calc(100% - 24px)); margin: 8px auto 0; padding: 7px 10px;
+    background: #d9dde0; border: 1px solid #969da3; font-size: 10px; color: #3f4549;
   }
-  .light:hover { transform: scale(1.15); }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-swatch { width: 12px; height: 12px; border: 2px solid #404850; background: #697178; }
+  .legend-swatch.cmd { background: #315c80; border-radius: 2px; }
+  .legend-swatch.fb { background: #2f7d32; border-radius: 50%; }
+  .legend-swatch.hb { background: #9a6a20; border-radius: 2px; }
+
+  .events-panel { padding: 12px; background: #c8ccd0; }
+  .events-card { width: min(1180px, 100%); margin: 0 auto; background: #e6e6e6; border: 1px solid #7a7f84; }
+  .events-header { display: flex; justify-content: space-between; padding: 10px 12px; background: #2f3b45; color: #fff; }
+  .events-header h2 { font-size: 13px; }
+  .events-header span { color: #cbd4da; font-size: 10px; }
+  .event-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .event-table th { text-align: left; background: #d0d4d7; color: #30363a; padding: 7px; border-bottom: 1px solid #899198; }
+  .event-table td { padding: 7px; border-bottom: 1px solid #c1c5c8; vertical-align: top; }
+  .event-table tr.alarm { background: #f2cccc; }
+  .event-table tr.warning { background: #f4e6bf; }
+  .event-severity { font-weight: 800; }
+  .data-note { font-size: 10px; color: #5b6267; font-weight: 600; }
 
   .arrow {
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 28px;
-    color: #30363d;
-    transition: color 0.3s;
+    color: #7a7f84;
     align-self: center;
     margin-top: 60px;
   }
-  .arrow.active { color: #3fb950; }
+  .arrow.active { color: #2f7d32; }
 
   /* Conveyor belt animation */
   @keyframes conveyorRoll {
@@ -243,46 +442,351 @@
   }
   .nozzle-glow.running { animation-play-state: running; }
 
+  /* Line View - compact horizontal production line */
+  .line-view-panel {
+    padding: 12px;
+    display: flex;
+    justify-content: center;
+    background: #c8ccd0;
+  }
+  .line-view-card {
+    width: min(1100px, 100%);
+    background: #e6e6e6;
+    border: 1px solid #7a7f84;
+    padding: 10px 16px;
+  }
+  .line-view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #9aa1a8;
+    margin-bottom: 10px;
+  }
+  .line-view-header h2 { font-size: 14px; font-weight: 700; color: #2f3b45; }
+  .line-view-header span { font-size: 12px; color: #1c43d6; font-weight: 600; }
+  .lv-line {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    position: relative;
+  }
+  .lv-station {
+    flex: 1;
+    text-align: center;
+    position: relative;
+    padding: 8px 4px;
+  }
+  .lv-station-box {
+    background: #d4d8dc;
+    border: 2px solid #7a7f84;
+    border-radius: 4px;
+    padding: 8px 6px 6px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .lv-station-box.active {
+    border-color: #1c43d6;
+    box-shadow: 0 0 8px rgba(28,67,214,0.4);
+  }
+  .lv-station-box.status {
+    border-color: #9a6a20;
+    box-shadow: 0 0 6px rgba(154,106,32,0.3);
+  }
+  .lv-station-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #2f3b45;
+    margin-bottom: 4px;
+  }
+  .lv-station-plc {
+    font-size: 9px;
+    color: #666;
+    margin-bottom: 6px;
+  }
+  .lv-lights {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-top: 4px;
+  }
+  .lv-light {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #697178;
+    border: 1.5px solid #404850;
+    transition: background 0.15s;
+  }
+  .lv-conn-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #8b2f2f;
+    display: inline-block;
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+  .lv-conn-dot.on { background: #2f7d32; }
+  .lv-arrow {
+    font-size: 22px;
+    color: #9aa1a8;
+    font-weight: 700;
+    padding: 0 2px;
+    transition: color 0.2s;
+    flex-shrink: 0;
+  }
+  .lv-arrow.active { color: #1c43d6; }
+  .lv-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 6px;
+    border-top: 1px solid #9aa1a8;
+    font-size: 11px;
+    color: #333;
+  }
+  .lv-status-row .lv-stage { font-weight: 600; color: #1c43d6; }
+
   .footer {
     text-align: center;
     padding: 16px;
-    color: #484f58;
+    color: #4f555a;
     font-size: 11px;
-    border-top: 1px solid #21262d;
+    border-top: 1px solid #9aa1a8;
   }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>⚙ <span>Manufacturing Process</span> HMI</h1>
-  <div class="status" id="connStatus">Connecting...</div>
+  <div class="brand-block">
+    <img class="brand-icon" src="{{ url_for('static', filename='trainer-cell.png') }}" alt="Trainer Cell 01">
+    <div>
+      <div class="brand-kicker">TRAINER CELL 01 / OPERATOR STATION</div>
+      <h1><span>Widget Manufacturing</span> Control System</h1>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill mode" id="modeStatus">MODE AUTO</div>
+    <div class="status-pill warn" id="runStatus">STOPPED</div>
+    <div class="status-pill warn" id="readyStatus">0/4 READY</div>
+    <div class="status-pill" id="gaspotStatus">TANKS --</div>
+    <div class="status-pill clock" id="systemClock">--</div>
+  </div>
+</div>
+
+<div class="interlock-strip" id="interlockStrip" role="status">Start permissives are being evaluated.</div>
+
+<div class="fault-banner" id="faultBanner" role="alert">
+  <span id="faultText">Process fault</span>
+  <button id="resetFaultBtn" onclick="resetFault()">Reset Fault</button>
 </div>
 
 <div class="process-bar">
-  <button class="process-btn run" id="processBtn" onclick="toggleProcess()">▶ Run Process</button>
+  <div class="mode-control" aria-label="Operating mode">
+    <button class="mode-btn active" id="modeAutoBtn" onclick="setMode('AUTO')">AUTO</button>
+    <button class="mode-btn" id="modeManualBtn" onclick="setMode('MANUAL')">MANUAL</button>
+  </div>
+  <button class="process-btn run" id="processBtn" onclick="toggleProcess()">Start Auto</button>
   <div class="stage-label" id="stageLabel">Process idle</div>
   <div class="progress-track">
     <div class="progress-fill" id="progressFill"></div>
   </div>
+  <div class="speed-control">
+    <label for="speedInput">Speed ms</label>
+    <input type="number" id="speedInput" min="50" max="10000" step="50" value="300">
+    <button onclick="applySpeed()">Apply</button>
+  </div>
 </div>
 
-<div class="factory" id="factory">
+<div class="tabs" role="tablist" aria-label="WebHMI views">
+  <button class="tab-btn active" id="tab-single" onclick="showTab('single')">Process Overview</button>
+  <button class="tab-btn" id="tab-detail" onclick="showTab('detail')">PLC I/O Detail</button>
+  <button class="tab-btn" id="tab-lineview" onclick="showTab('lineview')">Compact Line</button>
+  <button class="tab-btn" id="tab-events" onclick="showTab('events')">Events & Alarms</button>
+</div>
 
-  <!-- ============== CONVEYOR IN (.30) ============== -->
+<div class="tab-panel single-line-panel" id="singleLinePanel">
+  <div class="single-line-card">
+    <div class="single-line-title">
+      <div>WIDGET CELL - INDUSTRIAL SINGLE-LINE OVERVIEW</div>
+      <div><span id="singleLineStage">No part in process</span><div class="data-note" id="dataSourceNote">Blue numeric values are derived demo values unless identified as tank data.</div></div>
+    </div>
+    <svg class="single-line-svg" viewBox="0 0 1280 620" aria-label="Industrial single-line manufacturing process view">
+      <defs>
+        <linearGradient id="vesselGradient" x1="0" x2="1">
+          <stop offset="0" stop-color="#8c9094"/>
+          <stop offset="0.20" stop-color="#e8e8e8"/>
+          <stop offset="0.55" stop-color="#bfc2c5"/>
+          <stop offset="0.82" stop-color="#f7f7f7"/>
+          <stop offset="1" stop-color="#81868a"/>
+        </linearGradient>
+        <linearGradient id="tankGold" x1="0" x2="1">
+          <stop offset="0" stop-color="#6d6830"/>
+          <stop offset="0.28" stop-color="#d0c27c"/>
+          <stop offset="0.70" stop-color="#8e8542"/>
+          <stop offset="1" stop-color="#5f5b2e"/>
+        </linearGradient>
+      </defs>
+
+      <rect x="8" y="8" width="1264" height="604" fill="#d6d1d9" stroke="#a5a0a8"/>
+      <text x="640" y="26" text-anchor="middle" class="sl-label">Widget Accumulator, Process Train and QC Return</text>
+
+      <!-- Main process piping -->
+      <path id="sl-pipe-mlgx30" class="sl-pipe process" d="M38 178 H135 V138 H210"/>
+      <path id="sl-pipe-mlgx31" class="sl-pipe process" d="M310 205 H405 V172 H485"/>
+      <path id="sl-pipe-s7" class="sl-pipe process" d="M610 175 H725 V135 H860 V260 H975"/>
+      <path id="sl-pipe-phx" class="sl-pipe process" d="M960 320 H1124 V420 H1190"/>
+      <path class="sl-pipe return" d="M1125 445 H850 V485 H310 V390 H205"/>
+      <path class="sl-pipe vent" d="M240 136 V72 H290 V34"/>
+      <path class="sl-pipe vent" d="M735 135 V88 H805"/>
+      <path class="sl-pipe process" d="M930 155 H1030 V106 H1115" opacity="0.7"/>
+      <path class="sl-pipe return" d="M1010 210 H1160 V140" opacity="0.65"/>
+
+      <!-- Blower and accumulator feed -->
+      <rect x="26" y="162" width="58" height="16" fill="#9da2a6" stroke="#595f64"/>
+      <text x="32" y="151" class="sl-small">Blowdown</text>
+      <circle id="sl-valve-feed" class="sl-valve" cx="82" cy="430" r="9"/>
+
+      <!-- Accumulator / Load -->
+      <g id="sl-station-mlgx30">
+        <text x="212" y="82" text-anchor="middle" class="sl-label">Accumulator</text>
+        <rect id="sl-equip-mlgx30" class="sl-equip" x="126" y="135" width="180" height="290" rx="42"/>
+        <rect class="sl-fill" id="sl-fill-mlgx30" x="132" y="230" width="168" height="188" fill="#c7d9e8" opacity="0.35"/>
+        <path d="M126 180 C155 208 278 208 306 180" fill="none" stroke="#e9e9e9" stroke-width="4" opacity="0.65"/>
+        <line x1="306" y1="270" x2="358" y2="270" class="sl-pipe vent"/>
+        <circle id="sl-dot-mlgx30" class="sl-status-dot" cx="154" cy="160" r="7"/>
+        <text x="208" y="247" text-anchor="middle" class="sl-readout" id="sl-pct-mlgx30">81 %</text>
+        <text x="252" y="306" class="sl-readout-small" id="sl-temp-mlgx30">200 F</text>
+        <text x="146" y="410" class="sl-readout-small" id="sl-flow-mlgx30">276 gpm</text>
+        <text x="170" y="454" text-anchor="middle" class="sl-state" id="sl-state-mlgx30">Ready</text>
+      </g>
+
+      <!-- Wash / Machining vessel -->
+      <g id="sl-station-mlgx31">
+        <text x="460" y="112" text-anchor="middle" class="sl-label">Wash / Machine</text>
+        <rect id="sl-equip-mlgx31" class="sl-equip" x="405" y="160" width="150" height="190" rx="20"/>
+        <rect x="398" y="150" width="164" height="14" fill="#5d6268"/>
+        <rect class="sl-fill" id="sl-fill-mlgx31" x="412" y="245" width="136" height="98" fill="#b9cfe7" opacity="0.35"/>
+        <circle id="sl-dot-mlgx31" class="sl-status-dot" cx="432" cy="182" r="7"/>
+        <circle id="sl-valve-machine" class="sl-valve" cx="435" cy="362" r="8"/>
+        <circle id="sl-valve-drain" class="sl-valve" cx="548" cy="362" r="8"/>
+        <text x="410" y="130" class="sl-readout-small" id="sl-mach-vac">16.3 inHg</text>
+        <text x="500" y="130" class="sl-readout-small" id="sl-mach-temp">179 F</text>
+        <text x="460" y="376" text-anchor="middle" class="sl-readout-small" id="sl-mach-flow">181 gpm</text>
+        <text x="480" y="454" text-anchor="middle" class="sl-state" id="sl-state-mlgx31">Ready</text>
+      </g>
+
+      <!-- Assembly effect / separator -->
+      <g id="sl-station-s7">
+        <text x="670" y="92" text-anchor="middle" class="sl-label">Assembly Effect</text>
+        <rect id="sl-equip-s7" class="sl-equip" x="600" y="135" width="170" height="210" rx="26"/>
+        <path d="M600 178 C628 206 742 206 770 178" fill="#ffffff" opacity="0.28"/>
+        <rect class="sl-fill" id="sl-fill-s7" x="608" y="235" width="154" height="102" fill="#d8dde7" opacity="0.45"/>
+        <line x1="685" y1="345" x2="685" y2="400" class="sl-pipe vent"/>
+        <circle id="sl-dot-s7" class="sl-status-dot" cx="625" cy="158" r="7"/>
+        <circle id="sl-valve-assembly" class="sl-valve" cx="685" cy="402" r="8"/>
+        <text x="610" y="118" class="sl-readout-small" id="sl-asm-vac">24.5 inHg</text>
+        <text x="702" y="118" class="sl-readout-small" id="sl-asm-temp">133 F</text>
+        <text x="642" y="325" class="sl-readout-small" id="sl-asm-level">60 %</text>
+        <text x="685" y="454" text-anchor="middle" class="sl-state" id="sl-state-s7">Ready</text>
+      </g>
+
+      <!-- Condenser / Paint & QC -->
+      <g id="sl-station-phx">
+        <text x="900" y="68" text-anchor="middle" class="sl-label">Paint Condenser</text>
+        <rect id="sl-equip-phx" class="sl-equip" x="845" y="86" width="105" height="255" rx="18"/>
+        <rect x="856" y="103" width="83" height="66" fill="#ffffff" opacity="0.35"/>
+        <circle id="sl-dot-phx" class="sl-status-dot" cx="870" cy="105" r="7"/>
+        <text x="833" y="365" class="sl-readout-small" id="sl-paint-flow">235 gpm</text>
+        <text x="900" y="454" text-anchor="middle" class="sl-state" id="sl-state-phx">Ready</text>
+      </g>
+
+      <!-- Secondary separators and final QC/cooling area -->
+      <g>
+        <text x="1042" y="137" text-anchor="middle" class="sl-small">Sec Chg</text>
+        <rect class="sl-equip" x="1012" y="150" width="58" height="160" rx="18"/>
+        <text x="985" y="180" class="sl-readout-small" id="sl-sec-temp">105 F</text>
+        <text x="987" y="199" class="sl-readout-small" id="sl-sec-vac">-24.1 inHg</text>
+
+        <text x="1135" y="137" text-anchor="middle" class="sl-small">InterCnd</text>
+        <rect class="sl-equip" x="1108" y="150" width="44" height="155" rx="14"/>
+        <text x="1192" y="137" text-anchor="middle" class="sl-small">AfterCnd</text>
+        <rect class="sl-equip" x="1164" y="150" width="44" height="155" rx="14"/>
+        <path class="sl-pipe process" d="M1085 330 H1225" opacity="0.85"/>
+        <text x="1125" y="347" class="sl-readout-small" id="sl-qc-temp">103 F</text>
+        <text x="1190" y="347" class="sl-readout-small" id="sl-qc-out">106 F</text>
+      </g>
+
+      <g>
+        <text x="1088" y="425" text-anchor="middle" class="sl-small">Cooling Towers</text>
+        <path d="M1042 444 L1148 444 L1128 535 L1062 535 Z" fill="#9da2a6" stroke="#404850" stroke-width="2"/>
+        <rect x="1070" y="405" width="34" height="42" class="sl-equip"/>
+        <rect x="1110" y="405" width="34" height="42" class="sl-equip"/>
+        <circle id="sl-valve-cool-a" class="sl-valve" cx="1075" cy="445" r="8"/>
+        <circle id="sl-valve-cool-b" class="sl-valve" cx="1124" cy="445" r="8"/>
+        <rect x="1148" y="520" width="40" height="34" fill="#0fa6d7" stroke="#404850"/>
+        <text x="1198" y="511" class="sl-readout-small" id="sl-cool-temp">82 F</text>
+        <text x="1166" y="566" text-anchor="middle" class="sl-readout-small" id="sl-cool-pct">90%</text>
+      </g>
+
+      <!-- Bottom tanks / recycle -->
+      <g>
+        <text x="180" y="515" text-anchor="middle" class="sl-small">WIP Tank M10</text>
+        <rect x="136" y="520" width="88" height="80" fill="url(#tankGold)" stroke="#595f2e"/>
+        <text x="168" y="540" class="sl-readout-small">76 %</text>
+        <text x="306" y="515" text-anchor="middle" class="sl-small">WIP Tank R2W</text>
+        <rect x="260" y="520" width="92" height="80" fill="url(#tankGold)" stroke="#595f2e"/>
+        <text x="292" y="540" class="sl-readout-small">75 %</text>
+        <circle id="sl-valve-return" class="sl-valve" cx="350" cy="480" r="8"/>
+      </g>
+
+      <!-- Instrument panels / annotations -->
+      <g>
+        <rect class="sl-panel-box" x="28" y="298" width="72" height="48"/>
+        <text x="38" y="318" class="sl-readout-small" id="sl-load-pressure">1.8 dPsi</text>
+        <text x="38" y="336" class="sl-readout-small">205 F</text>
+        <rect class="sl-panel-box" x="520" y="390" width="88" height="48"/>
+        <text x="532" y="410" class="sl-readout-small" id="sl-mid-rate">189 gpm</text>
+        <text x="532" y="428" class="sl-readout-small" id="sl-mid-temp">171 F</text>
+        <rect class="sl-panel-box" x="940" y="360" width="96" height="52"/>
+        <text x="952" y="380" class="sl-readout-small" id="sl-prod-rate">74 gpm</text>
+        <text x="952" y="398" class="sl-readout-small" id="sl-prod-vac">-20.5 inHg</text>
+      </g>
+
+      <!-- Dotted control lines -->
+      <path d="M226 140 V280 H390" fill="none" stroke="#7a7f84" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <path d="M670 135 V80 H900" fill="none" stroke="#7a7f84" stroke-width="1.5" stroke-dasharray="4 4"/>
+      <path d="M1038 150 V96 H1168" fill="none" stroke="#7a7f84" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+      <rect id="sl-part" class="sl-product" x="194" y="412" width="34" height="24" rx="3" opacity="0"/>
+      <text x="640" y="592" text-anchor="middle" class="sl-state" id="sl-summary">Run the process to move a widget through the line</text>
+    </svg>
+  </div>
+</div>
+
+<div class="legend-bar" id="ioLegend">
+  <div class="legend-item"><span class="legend-swatch cmd"></span> Command requested</div>
+  <div class="legend-item"><span class="legend-swatch fb"></span> Measured PLC output feedback</div>
+  <div class="legend-item"><span class="legend-swatch hb"></span> AUTO heartbeat command on an inactive station</div>
+  <div class="legend-item">Color is reserved for abnormal state, active command, or confirmed output.</div>
+</div>
+
+<div class="tab-panel hidden" id="detailPanel">
+<div class="factory" id="factory">
+  <!-- conveyor in -->
   <div class="station" id="station-mlgx30">
     <div class="station-header">
-      <span class="station-name" style="color:#58a6ff">📦 Conveyor In</span>
+      <span class="station-name">Conveyor In</span>
       <div class="station-dot" id="dot-mlgx30"></div>
     </div>
-    <div class="station-info">MicroLogix .30 · 192.168.0.30 · ENIP</div>
+    <div class="station-info">MicroLogix .30 / 192.168.0.30 / ENIP</div>
     <div class="station-svg">
       <svg width="190" height="100" viewBox="0 0 190 100">
         <!-- Conveyor frame / side rails -->
         <rect x="10" y="58" width="170" height="6" rx="3" fill="#3d444d"/>
         <rect x="10" y="72" width="170" height="6" rx="3" fill="#3d444d"/>
         <!-- Belt surface -->
-        <line x1="18" y1="64" x2="172" y2="64" stroke="#58a6ff" stroke-width="8" stroke-linecap="round"
+        <line x1="18" y1="64" x2="172" y2="64" stroke="#2d5f88" stroke-width="8" stroke-linecap="round"
               class="belt-line" id="belt-mlgx30" opacity="0.7"/>
         <!-- Rollers -->
         <g class="roller" id="roller1-mlgx30">
@@ -304,11 +808,11 @@
         <!-- Floor -->
         <line x1="5" y1="96" x2="185" y2="96" stroke="#30363d" stroke-width="2"/>
         <!-- Package on belt -->
-        <rect x="75" y="36" width="28" height="22" rx="3" fill="#58a6ff" opacity="0.5" stroke="#58a6ff" stroke-width="1"/>
+        <rect x="75" y="36" width="28" height="22" rx="3" fill="#2d5f88" opacity="0.5" stroke="#2d5f88" stroke-width="1"/>
         <line x1="79" y1="42" x2="99" y2="42" stroke="#fff" stroke-width="0.5" opacity="0.4"/>
         <line x1="79" y1="47" x2="95" y2="47" stroke="#fff" stroke-width="0.5" opacity="0.3"/>
         <!-- Arrow indicator -->
-        <polygon points="145,45 155,50 145,55" fill="#58a6ff" opacity="0.4" id="arrow-indicator-mlgx30"/>
+        <polygon points="145,45 155,50 145,55" fill="#2d5f88" opacity="0.4" id="arrow-indicator-mlgx30"/>
       </svg>
     </div>
     <div class="lights" id="lights-mlgx30"></div>
@@ -316,13 +820,13 @@
 
   <div class="arrow" id="arrow-0">→</div>
 
-  <!-- ============== DRILL PRESS (.31) ============== -->
+  <!-- drill press -->
   <div class="station" id="station-mlgx31">
     <div class="station-header">
-      <span class="station-name" style="color:#3fb950">🔩 Drill Press</span>
+      <span class="station-name">Drill Press</span>
       <div class="station-dot" id="dot-mlgx31"></div>
     </div>
-    <div class="station-info">MicroLogix .31 · 192.168.0.31 · ENIP</div>
+    <div class="station-info">MicroLogix .31 / 192.168.0.31 / ENIP</div>
     <div class="station-svg">
       <svg width="190" height="100" viewBox="0 0 190 100">
         <!-- Machine body / column -->
@@ -331,7 +835,7 @@
         <!-- Column -->
         <rect x="92" y="8" width="6" height="50" fill="#3d444d"/>
         <!-- Motor housing -->
-        <rect x="78" y="8" width="34" height="16" rx="4" fill="#484f58" stroke="#58a6ff" stroke-width="0.5"/>
+        <rect x="78" y="8" width="34" height="16" rx="4" fill="#484f58" stroke="#2d5f88" stroke-width="0.5"/>
         <!-- Drill head (animated up/down) -->
         <g class="drill-head" id="drillhead-mlgx31">
           <!-- Chuck -->
@@ -339,7 +843,7 @@
           <!-- Drill bit (animated spin) -->
           <g class="drill-bit-spin" id="drillbit-mlgx31">
             <rect x="93" y="32" width="4" height="18" rx="1" fill="#8b949e"/>
-            <polygon points="95,50 90,58 100,58" fill="#3fb950"/>
+            <polygon points="95,50 90,58 100,58" fill="#2f7d32"/>
             <!-- Flutes -->
             <line x1="93" y1="35" x2="97" y2="39" stroke="#aaa" stroke-width="0.5"/>
             <line x1="93" y1="40" x2="97" y2="44" stroke="#aaa" stroke-width="0.5"/>
@@ -350,8 +854,8 @@
         <rect x="55" y="68" width="80" height="6" rx="2" fill="#484f58"/>
         <rect x="65" y="74" width="60" height="3" rx="1" fill="#3d444d"/>
         <!-- Workpiece -->
-        <rect x="80" y="60" width="30" height="8" rx="2" fill="#30363d" stroke="#3fb950" stroke-width="1"/>
-        <circle cx="95" cy="64" r="2" fill="#3fb950" opacity="0.5"/>
+        <rect x="80" y="60" width="30" height="8" rx="2" fill="#30363d" stroke="#2f7d32" stroke-width="1"/>
+        <circle cx="95" cy="64" r="2" fill="#2f7d32" opacity="0.5"/>
         <!-- Base -->
         <rect x="60" y="77" width="70" height="5" rx="2" fill="#3d444d"/>
         <!-- Table legs -->
@@ -361,7 +865,7 @@
         <line x1="5" y1="96" x2="185" y2="96" stroke="#30363d" stroke-width="2"/>
         <!-- Speed dial -->
         <circle cx="30" cy="30" r="12" fill="#21262d" stroke="#484f58" stroke-width="1.5"/>
-        <line x1="30" y1="30" x2="30" y2="20" stroke="#3fb950" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="30" y1="30" x2="30" y2="20" stroke="#2f7d32" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
     </div>
     <div class="lights" id="lights-mlgx31"></div>
@@ -369,13 +873,13 @@
 
   <div class="arrow" id="arrow-1">→</div>
 
-  <!-- ============== ASSEMBLY (S7) ============== -->
+  <!-- assembly -->
   <div class="station" id="station-s7">
     <div class="station-header">
-      <span class="station-name" style="color:#39d2c0">🤖 Assembly</span>
+      <span class="station-name">Assembly</span>
       <div class="station-dot" id="dot-s7"></div>
     </div>
-    <div class="station-info">Siemens S7-1200 · 192.168.0.2 · S7comm</div>
+    <div class="station-info">Siemens S7-1200 / 192.168.0.2 / S7comm</div>
     <div class="station-svg">
       <svg width="190" height="100" viewBox="0 0 190 100">
         <!-- Robot base plate -->
@@ -384,35 +888,35 @@
         <!-- Robot column -->
         <rect x="90" y="50" width="10" height="30" rx="2" fill="#6e7681"/>
         <!-- Shoulder joint -->
-        <circle cx="95" cy="50" r="7" fill="#484f58" stroke="#39d2c0" stroke-width="1.5"/>
+        <circle cx="95" cy="50" r="7" fill="#484f58" stroke="#2e6f73" stroke-width="1.5"/>
         <!-- Upper arm (animated swing) -->
         <g class="robot-arm" id="arm-s7" style="transform-origin: 95px 50px;">
           <!-- Upper arm -->
-          <rect x="60" y="44" width="35" height="8" rx="4" fill="#39d2c0" opacity="0.9"/>
+          <rect x="60" y="44" width="35" height="8" rx="4" fill="#2e6f73" opacity="0.9"/>
           <!-- Elbow joint -->
-          <circle cx="60" cy="48" r="5" fill="#484f58" stroke="#39d2c0" stroke-width="1"/>
+          <circle cx="60" cy="48" r="5" fill="#484f58" stroke="#2e6f73" stroke-width="1"/>
           <!-- Forearm -->
-          <rect x="38" y="42" width="24" height="6" rx="3" fill="#39d2c0" opacity="0.7"/>
+          <rect x="38" y="42" width="24" height="6" rx="3" fill="#2e6f73" opacity="0.7"/>
           <!-- Wrist -->
-          <circle cx="38" cy="45" r="3.5" fill="#484f58" stroke="#39d2c0" stroke-width="1"/>
+          <circle cx="38" cy="45" r="3.5" fill="#484f58" stroke="#2e6f73" stroke-width="1"/>
           <!-- Gripper -->
           <g class="gripper" id="grip-s7" style="transform-origin: 38px 45px;">
-            <line x1="35" y1="48" x2="28" y2="58" stroke="#39d2c0" stroke-width="2.5" stroke-linecap="round"/>
-            <line x1="41" y1="48" x2="48" y2="58" stroke="#39d2c0" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="35" y1="48" x2="28" y2="58" stroke="#2e6f73" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="41" y1="48" x2="48" y2="58" stroke="#2e6f73" stroke-width="2.5" stroke-linecap="round"/>
             <!-- Fingertips -->
-            <rect x="25" y="57" width="6" height="3" rx="1" fill="#39d2c0"/>
-            <rect x="45" y="57" width="6" height="3" rx="1" fill="#39d2c0"/>
+            <rect x="25" y="57" width="6" height="3" rx="1" fill="#2e6f73"/>
+            <rect x="45" y="57" width="6" height="3" rx="1" fill="#2e6f73"/>
           </g>
         </g>
         <!-- Work surface -->
         <rect x="20" y="76" width="60" height="4" rx="2" fill="#3d444d"/>
         <!-- Parts on table -->
-        <rect x="30" y="68" width="12" height="8" rx="1" fill="#30363d" stroke="#39d2c0" stroke-width="0.8"/>
-        <rect x="50" y="70" width="8" height="6" rx="1" fill="#30363d" stroke="#39d2c0" stroke-width="0.8"/>
+        <rect x="30" y="68" width="12" height="8" rx="1" fill="#30363d" stroke="#2e6f73" stroke-width="0.8"/>
+        <rect x="50" y="70" width="8" height="6" rx="1" fill="#30363d" stroke="#2e6f73" stroke-width="0.8"/>
         <!-- Control panel -->
         <rect x="140" y="40" width="30" height="40" rx="3" fill="#21262d" stroke="#484f58" stroke-width="1"/>
-        <circle cx="155" cy="52" r="3" fill="#39d2c0" opacity="0.5"/>
-        <circle cx="155" cy="62" r="3" fill="#d29922" opacity="0.5"/>
+        <circle cx="155" cy="52" r="3" fill="#2e6f73" opacity="0.5"/>
+        <circle cx="155" cy="62" r="3" fill="#9a6a20" opacity="0.5"/>
         <rect x="146" y="70" width="18" height="4" rx="1" fill="#30363d"/>
         <!-- Floor -->
         <line x1="5" y1="96" x2="185" y2="96" stroke="#30363d" stroke-width="2"/>
@@ -423,13 +927,13 @@
 
   <div class="arrow" id="arrow-2">→</div>
 
-  <!-- ============== PAINT & QC (Phoenix) ============== -->
+  <!-- paint and qc -->
   <div class="station" id="station-phx">
     <div class="station-header">
-      <span class="station-name" style="color:#d29922">🎨 Paint & QC</span>
+      <span class="station-name">Paint & QC</span>
       <div class="station-dot" id="dot-phx"></div>
     </div>
-    <div class="station-info">Phoenix Contact · 192.168.0.3 · Modbus</div>
+    <div class="station-info">Phoenix Contact / 192.168.0.3 / Modbus</div>
     <div class="station-svg">
       <svg width="190" height="100" viewBox="0 0 190 100">
         <!-- Paint booth walls -->
@@ -439,33 +943,33 @@
         <!-- Spray arm / rail -->
         <rect x="50" y="16" width="90" height="3" rx="1" fill="#484f58"/>
         <!-- Nozzle housing -->
-        <rect x="82" y="16" width="26" height="14" rx="4" fill="#484f58" stroke="#d29922" stroke-width="1"/>
+        <rect x="82" y="16" width="26" height="14" rx="4" fill="#484f58" stroke="#9a6a20" stroke-width="1"/>
         <g class="nozzle-glow" id="nozzle-phx">
-          <rect x="88" y="30" width="4" height="6" rx="1" fill="#d29922"/>
-          <rect x="96" y="30" width="4" height="6" rx="1" fill="#d29922"/>
+          <rect x="88" y="30" width="4" height="6" rx="1" fill="#9a6a20"/>
+          <rect x="96" y="30" width="4" height="6" rx="1" fill="#9a6a20"/>
         </g>
         <!-- Spray droplets -->
         <g id="spray-phx">
-          <circle cx="85" cy="40" r="2"   class="spray-drop" fill="#d29922" opacity="0.7"/>
-          <circle cx="90" cy="42" r="2.5" class="spray-drop" fill="#d29922" opacity="0.6"/>
-          <circle cx="95" cy="39" r="2"   class="spray-drop" fill="#d29922" opacity="0.8"/>
-          <circle cx="100" cy="41" r="1.8" class="spray-drop" fill="#d29922" opacity="0.5"/>
-          <circle cx="88" cy="46" r="1.5" class="spray-drop" fill="#d29922" opacity="0.4"/>
-          <circle cx="97" cy="47" r="1.5" class="spray-drop" fill="#d29922" opacity="0.4"/>
-          <circle cx="92" cy="50" r="2"   class="spray-drop" fill="#d29922" opacity="0.3"/>
+          <circle cx="85" cy="40" r="2"   class="spray-drop" fill="#9a6a20" opacity="0.7"/>
+          <circle cx="90" cy="42" r="2.5" class="spray-drop" fill="#9a6a20" opacity="0.6"/>
+          <circle cx="95" cy="39" r="2"   class="spray-drop" fill="#9a6a20" opacity="0.8"/>
+          <circle cx="100" cy="41" r="1.8" class="spray-drop" fill="#9a6a20" opacity="0.5"/>
+          <circle cx="88" cy="46" r="1.5" class="spray-drop" fill="#9a6a20" opacity="0.4"/>
+          <circle cx="97" cy="47" r="1.5" class="spray-drop" fill="#9a6a20" opacity="0.4"/>
+          <circle cx="92" cy="50" r="2"   class="spray-drop" fill="#9a6a20" opacity="0.3"/>
         </g>
         <!-- Part being painted (on turntable) -->
         <ellipse cx="95" cy="70" rx="25" ry="4" fill="#30363d"/>
-        <rect x="80" y="56" width="30" height="14" rx="3" fill="#30363d" stroke="#d29922" stroke-width="1.5"/>
+        <rect x="80" y="56" width="30" height="14" rx="3" fill="#30363d" stroke="#9a6a20" stroke-width="1.5"/>
         <!-- Paint gradient on part -->
-        <rect x="82" y="58" width="10" height="10" rx="2" fill="#d29922" opacity="0.3"/>
+        <rect x="82" y="58" width="10" height="10" rx="2" fill="#9a6a20" opacity="0.3"/>
         <!-- Floor -->
         <line x1="5" y1="96" x2="185" y2="96" stroke="#30363d" stroke-width="2"/>
         <!-- QC badge -->
         <g transform="translate(155,55)">
-          <rect x="0" y="0" width="28" height="28" rx="4" fill="#21262d" stroke="#3fb950" stroke-width="1"/>
-          <text x="14" y="12" text-anchor="middle" font-size="7" fill="#3fb950" font-weight="bold">QC</text>
-          <text x="14" y="22" text-anchor="middle" font-size="10" fill="#3fb950">✓</text>
+          <rect x="0" y="0" width="28" height="28" rx="4" fill="#21262d" stroke="#2f7d32" stroke-width="1"/>
+          <text x="14" y="12" text-anchor="middle" font-size="7" fill="#2f7d32" font-weight="bold">QC</text>
+          <text x="14" y="22" text-anchor="middle" font-size="8" fill="#2f7d32">OK</text>
         </g>
       </svg>
     </div>
@@ -473,36 +977,308 @@
   </div>
 
 </div>
+</div>
+
+<!-- Line View: compact horizontal production line -->
+<div class="tab-panel hidden line-view-panel" id="lineViewPanel">
+  <div class="line-view-card">
+    <div class="line-view-header">
+      <h2>Production Line Overview</h2>
+      <span id="lvStage">Idle</span>
+    </div>
+    <div class="lv-line" id="lvLine">
+      <div class="lv-station" data-pid="mlgx30">
+        <div class="lv-station-box" id="lv-box-mlgx30">
+          <div class="lv-station-name">Conveyor In <span class="lv-conn-dot" id="lv-dot-mlgx30"></span></div>
+          <div class="lv-station-plc">MicroLogix .30 / ENIP</div>
+          <div class="lv-lights" id="lv-lights-mlgx30"></div>
+        </div>
+      </div>
+      <div class="lv-arrow" id="lv-arr-0">▶</div>
+      <div class="lv-station" data-pid="mlgx31">
+        <div class="lv-station-box" id="lv-box-mlgx31">
+          <div class="lv-station-name">Drill Press <span class="lv-conn-dot" id="lv-dot-mlgx31"></span></div>
+          <div class="lv-station-plc">MicroLogix .31 / ENIP</div>
+          <div class="lv-lights" id="lv-lights-mlgx31"></div>
+        </div>
+      </div>
+      <div class="lv-arrow" id="lv-arr-1">▶</div>
+      <div class="lv-station" data-pid="s7">
+        <div class="lv-station-box" id="lv-box-s7">
+          <div class="lv-station-name">Assembly <span class="lv-conn-dot" id="lv-dot-s7"></span></div>
+          <div class="lv-station-plc">S7-1200 / S7comm</div>
+          <div class="lv-lights" id="lv-lights-s7"></div>
+        </div>
+      </div>
+      <div class="lv-arrow" id="lv-arr-2">▶</div>
+      <div class="lv-station" data-pid="phx">
+        <div class="lv-station-box" id="lv-box-phx">
+          <div class="lv-station-name">Paint & QC <span class="lv-conn-dot" id="lv-dot-phx"></span></div>
+          <div class="lv-station-plc">Phoenix / Modbus</div>
+          <div class="lv-lights" id="lv-lights-phx"></div>
+        </div>
+      </div>
+    </div>
+    <div class="lv-status-row">
+      <div>Speed: <span id="lvSpeed">300</span> ms</div>
+      <div class="lv-stage" id="lvStageBottom">Idle</div>
+      <div>Progress: <span id="lvProgress">0</span>%</div>
+    </div>
+  </div>
+</div>
+
+<div class="tab-panel hidden events-panel" id="eventsPanel">
+  <div class="events-card">
+    <div class="events-header">
+      <h2>Operator Event & Alarm Journal</h2>
+      <span>Newest event first / retained in memory for this session</span>
+    </div>
+    <table class="event-table">
+      <thead><tr><th>Time</th><th>Severity</th><th>Source</th><th>Message</th></tr></thead>
+      <tbody id="eventRows"><tr><td colspan="4">No events recorded.</td></tr></tbody>
+    </table>
+  </div>
+</div>
 
 <div class="footer">
-  Trainer HMI · 4 PLCs · ENIP / S7comm / Modbus TCP · Random process mode · Polls every 500ms
+  TRAINER CELL 01 / ENIP · S7comm · Modbus TCP / Communications scan 500 ms / Not a safety-rated control system
 </div>
 
 <script>
 const PLC_IDS = ["mlgx30", "mlgx31", "s7", "phx"];
 const PLC_COLORS = {
-  mlgx30: "#58a6ff",
-  mlgx31: "#3fb950",
-  s7: "#39d2c0",
-  phx: "#d29922"
+  mlgx30: "#2d5f88",
+  mlgx31: "#2f7d32",
+  s7: "#2e6f73",
+  phx: "#9a6a20"
 };
 const PLC_DEVICE_COUNTS = { mlgx30: 5, mlgx31: 5, s7: 5, phx: 2 };
 
 let processRunning = false;
+let processRequestPending = false;
+let processFaultLatched = false;
+let operatingMode = "AUTO";
+let speedInputDirty = false;
+const STATION_X = { mlgx30: 105, mlgx31: 335, s7: 595, phx: 854 };
+const STATION_NAMES = { mlgx30: "LOAD", mlgx31: "CUT", s7: "BUILD", phx: "FINISH" };
+
+function showTab(tabName) {
+  const panels = {single: "singleLinePanel", detail: "detailPanel", lineview: "lineViewPanel", events: "eventsPanel"};
+  const tabs = {single: "tab-single", detail: "tab-detail", lineview: "tab-lineview", events: "tab-events"};
+  Object.entries(panels).forEach(([key, id]) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("hidden", key !== tabName);
+  });
+  Object.entries(tabs).forEach(([key, id]) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("active", key === tabName);
+  });
+  const legend = document.getElementById("ioLegend");
+  if (legend) legend.style.display = ["single", "detail"].includes(tabName) ? "flex" : "none";
+}
+
+function initSingleLineRollers() {
+  const rollers = document.getElementById("sl-rollers");
+  if (!rollers) return;
+  for (let x = 95; x < 950; x += 45) {
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("cx", x);
+    c.setAttribute("cy", "240");
+    c.setAttribute("r", "8");
+    c.setAttribute("fill", "#b7bcc1");
+    c.setAttribute("stroke", "#404850");
+    rollers.appendChild(c);
+  }
+}
+
+function inferActiveStation(data) {
+  const stage = (data.process_stage || "").toLowerCase();
+  if (stage.includes("loading")) return 0;
+  if (stage.includes("drilling")) return 1;
+  if (stage.includes("assembling")) return 2;
+  if (stage.includes("paint") || stage.includes("quality")) return 3;
+  return -1;
+}
+
+function updateSingleLine(data) {
+  const activeIdx = inferActiveStation(data);
+  const activePid = activeIdx >= 0 ? PLC_IDS[activeIdx] : null;
+  const stageText = data.process_stage || "Process idle";
+  const progress = Number(data.process_step || 0);
+  const processOn = Boolean(data.process_running);
+
+  PLC_IDS.forEach((pid, idx) => {
+    const plc = data.plcs[pid];
+    if (!plc) return;
+    const outputs = plc.outputs || [];
+    const commands = plc.commands || [];
+    const heartbeat = plc.status_lights || [];
+    const anyOn = outputs.some(v => v);
+    const anyCommand = commands.some(v => v);
+    const heartbeatOn = heartbeat.some(v => v);
+    const isActive = idx === activeIdx;
+    const equip = document.getElementById(`sl-equip-${pid}`);
+    const dot = document.getElementById(`sl-dot-${pid}`);
+    const state = document.getElementById(`sl-state-${pid}`);
+    const pipe = document.getElementById(`sl-pipe-${pid}`);
+    const fill = document.getElementById(`sl-fill-${pid}`);
+
+    if (equip) {
+      equip.classList.toggle("active", isActive);
+      equip.classList.toggle("status", !isActive && (anyOn || anyCommand));
+    }
+    if (dot) dot.classList.toggle("on", plc.fresh && (isActive || anyOn || anyCommand));
+    if (pipe) pipe.classList.toggle("active", processOn && (isActive || activeIdx > idx));
+    if (state) state.textContent = !plc.fresh ? "OFFLINE" : isActive ? "RUNNING" : heartbeatOn ? "HEARTBEAT" : anyOn ? "FEEDBACK ON" : "READY";
+
+    if (fill) {
+      const tank = (data.tanks || [])[idx];
+      let level;
+      if (tank && tank.fill_pct !== undefined) {
+        level = Math.max(0.08, Math.min(0.95, tank.fill_pct / 100));
+      } else {
+        const base = isActive ? 0.68 : anyOn ? 0.45 : 0.28;
+        const jitter = outputs.filter(Boolean).length * 0.045;
+        level = Math.max(0.18, Math.min(0.88, base + jitter));
+      }
+      const maxH = Number(fill.dataset.maxH || fill.getAttribute("height") || 100);
+      if (!fill.dataset.maxH) fill.dataset.maxH = maxH;
+      const newH = maxH * level;
+      const originalY = Number(fill.dataset.originalY || fill.getAttribute("y"));
+      if (!fill.dataset.originalY) fill.dataset.originalY = originalY;
+      fill.setAttribute("height", newH.toFixed(1));
+      fill.setAttribute("y", (originalY + maxH - newH).toFixed(1));
+      fill.setAttribute("opacity", isActive || anyOn ? "0.55" : "0.28");
+    }
+  });
+
+  const valves = {
+    "sl-valve-feed": data.plcs.mlgx30?.outputs?.[0],
+    "sl-valve-machine": data.plcs.mlgx31?.outputs?.[0],
+    "sl-valve-drain": data.plcs.mlgx31?.outputs?.[3],
+    "sl-valve-assembly": data.plcs.s7?.outputs?.[2],
+    "sl-valve-cool-a": data.plcs.phx?.outputs?.[0],
+    "sl-valve-cool-b": data.plcs.phx?.outputs?.[1],
+    "sl-valve-return": processOn && activeIdx >= 2
+  };
+  Object.entries(valves).forEach(([id, on]) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle("on", Boolean(on));
+  });
+
+  const readouts = {
+    "sl-pct-mlgx30": `${Math.round(68 + progress * 0.22)} %`,
+    "sl-temp-mlgx30": `${198 + (processOn ? activeIdx + 1 : 0)} F`,
+    "sl-flow-mlgx30": `${processOn ? 220 + Math.round(progress * 1.4) : 0} gpm`,
+    "sl-mach-vac": `${(14.8 + (data.plcs.mlgx31?.outputs || []).filter(Boolean).length * 0.8).toFixed(1)} inHg`,
+    "sl-mach-temp": `${processOn ? 176 + activeIdx * 2 : 175} F`,
+    "sl-mach-flow": `${processOn ? 140 + Math.round(progress * 0.9) : 15} gpm`,
+    "sl-asm-vac": `${(22.5 + (data.plcs.s7?.outputs || []).filter(Boolean).length * 0.5).toFixed(1)} inHg`,
+    "sl-asm-temp": `${processOn ? 131 + activeIdx : 133} F`,
+    "sl-asm-level": `${processOn ? Math.min(80, 42 + Math.round(progress * 0.35)) : 40} %`,
+    "sl-paint-flow": `${processOn ? 185 + Math.round(progress * 0.7) : 74} gpm`,
+    "sl-sec-temp": `${processOn ? 100 + activeIdx * 2 : 95} F`,
+    "sl-sec-vac": `${processOn ? "-24.1" : "-20.5"} inHg`,
+    "sl-qc-temp": `${processOn ? 103 : 82} F`,
+    "sl-qc-out": `${processOn ? 106 : 82} F`,
+    "sl-cool-temp": `${processOn ? 82 : 74} F`,
+    "sl-cool-pct": `${processOn ? 90 : 30}%`,
+    "sl-load-pressure": `${(1.4 + progress / 120).toFixed(1)} dPsi`,
+    "sl-mid-rate": `${processOn ? 160 + Math.round(progress * 0.8) : 0} gpm`,
+    "sl-mid-temp": `${processOn ? 171 + activeIdx * 4 : 185} F`,
+    "sl-prod-rate": `${processOn ? 74 + Math.round(progress * 0.2) : 0} gpm`,
+    "sl-prod-vac": `${processOn ? "-20.5" : "0.0"} inHg`
+  };
+  // Override with GasPot tank data when available
+  const tanks = data.tanks || [];
+  if (tanks[0]) {
+    readouts["sl-pct-mlgx30"] = `${tanks[0].fill_pct} %`;
+    readouts["sl-temp-mlgx30"] = `${tanks[0].temperature} F`;
+    readouts["sl-flow-mlgx30"] = `T${tanks[0].tank_id} ${tanks[0].product}`;
+    readouts["sl-load-pressure"] = `H2O ${tanks[0].water} IN`;
+  }
+  if (tanks[1]) {
+    readouts["sl-mach-vac"] = `T${tanks[1].tank_id} ${tanks[1].fill_pct}%`;
+    readouts["sl-mach-temp"] = `${tanks[1].temperature} F`;
+    readouts["sl-mach-flow"] = `${tanks[1].volume} gal`;
+  }
+  if (tanks[2]) {
+    readouts["sl-asm-vac"] = `T${tanks[2].tank_id} ${tanks[2].fill_pct}%`;
+    readouts["sl-asm-temp"] = `${tanks[2].temperature} F`;
+    readouts["sl-asm-level"] = `${tanks[2].volume} gal`;
+  }
+  if (tanks[3]) {
+    readouts["sl-prod-rate"] = `T${tanks[3].tank_id} ${tanks[3].product}`;
+    readouts["sl-prod-vac"] = `H2O ${tanks[3].water} IN`;
+    readouts["sl-paint-flow"] = `${tanks[3].volume} gal`;
+  }
+  Object.entries(readouts).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  });
+
+  const part = document.getElementById("sl-part");
+  if (part) {
+    const partPositions = ["translate(0 0)", "translate(260 -50)", "translate(490 -60)", "translate(785 -90)"];
+    if (activePid) {
+      part.style.transform = partPositions[activeIdx] || "translate(0 0)";
+      part.setAttribute("opacity", "1");
+    } else {
+      part.setAttribute("opacity", "0");
+    }
+  }
+
+  document.getElementById("singleLineStage").textContent = stageText;
+  document.getElementById("dataSourceNote").textContent = data.gaspot_connected
+    ? "Tank values are supplied by GasPot; all other blue process values are derived demo values."
+    : "Blue process values are derived demo values; no field instruments are represented.";
+  document.getElementById("sl-summary").textContent = processOn
+    ? `${stageText}   |   speed ${data.process_speed_ms || 300} ms   |   blue lines indicate active transfer`
+    : `${operatingMode} mode / stopped / process commands de-energized`;
+}
+
+async function applySpeed() {
+  const input = document.getElementById("speedInput");
+  const speed = Math.max(50, Math.min(10000, parseInt(input.value || "300", 10)));
+  input.value = speed;
+  speedInputDirty = false;
+  const resp = await fetch("/api/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ speed_ms: speed })
+  });
+  const result = await resp.json();
+  if (!resp.ok || !result.ok) throw new Error(result.error || "Speed update failed");
+}
 
 function initLights() {
   PLC_IDS.forEach(pid => {
     const container = document.getElementById("lights-" + pid);
     const count = PLC_DEVICE_COUNTS[pid];
-    const color = PLC_COLORS[pid];
+    container.innerHTML = "";
+    const head = document.createElement("div");
+    head.className = "point-head";
+    head.innerHTML = "<span>POINT</span><span>CMD</span><span>FB</span>";
+    container.appendChild(head);
     for (let i = 0; i < count; i++) {
-      const dot = document.createElement("div");
-      dot.className = "light";
-      dot.id = `light-${pid}-${i}`;
-      dot.style.setProperty("--glow", color);
-      dot.title = `Output ${i}`;
-      dot.onclick = () => toggleCommand(pid, i);
-      container.appendChild(dot);
+      const row = document.createElement("div");
+      row.className = "point-row";
+      const name = document.createElement("div");
+      name.className = "point-name";
+      name.id = `point-name-${pid}-${i}`;
+      name.textContent = `Point ${i}`;
+      const cmd = document.createElement("button");
+      cmd.type = "button";
+      cmd.className = "light command disabled";
+      cmd.id = `cmd-${pid}-${i}`;
+      cmd.title = "Command request";
+      cmd.onclick = () => toggleCommand(pid, i);
+      const fb = document.createElement("div");
+      fb.className = "light feedback";
+      fb.id = `fb-${pid}-${i}`;
+      fb.title = "Measured PLC output feedback";
+      row.append(name, cmd, fb);
+      container.appendChild(row);
     }
   });
 }
@@ -518,37 +1294,102 @@ async function pollState() {
     const data = await resp.json();
 
     processRunning = data.process_running;
+    processFaultLatched = Boolean(data.process_fault_latched);
+    operatingMode = data.operating_mode || "AUTO";
     const btn = document.getElementById("processBtn");
-    if (processRunning) {
-      btn.textContent = "■ Stop Process";
-      btn.className = "process-btn stop";
-    } else {
-      btn.textContent = "▶ Run Process";
-      btn.className = "process-btn run";
+    const faultBanner = document.getElementById("faultBanner");
+    const faultText = document.getElementById("faultText");
+    faultBanner.classList.toggle("show", processFaultLatched);
+    if (processFaultLatched) {
+      faultText.textContent = `FAULT LATCHED: ${data.process_fault || "Communication or command failure"}. Restore all PLCs, verify the machine is safe, then Reset Fault.`;
     }
+    const autoSelected = operatingMode === "AUTO";
+    const startPermitted = Boolean(data.ready) && autoSelected;
+    if (processRequestPending) {
+      btn.textContent = "Please wait...";
+      btn.disabled = true;
+    } else if (processFaultLatched) {
+      btn.textContent = "Fault Latched";
+      btn.className = "process-btn fault";
+      btn.disabled = true;
+    } else if (processRunning) {
+      btn.textContent = "Stop Auto";
+      btn.className = "process-btn stop";
+      btn.disabled = false;
+    } else {
+      btn.textContent = autoSelected ? "Start Auto" : "AUTO Required";
+      btn.className = "process-btn run";
+      btn.disabled = !startPermitted;
+    }
+    const autoBtn = document.getElementById("modeAutoBtn");
+    const manualBtn = document.getElementById("modeManualBtn");
+    autoBtn.classList.toggle("active", autoSelected);
+    manualBtn.classList.toggle("active", !autoSelected);
+    autoBtn.disabled = processRunning || processRequestPending;
+    manualBtn.disabled = processRunning || processRequestPending;
+    document.getElementById("modeStatus").textContent = `MODE ${operatingMode}`;
+    const runStatus = document.getElementById("runStatus");
+    runStatus.textContent = processFaultLatched ? "FAULT" : processRunning ? "RUNNING" : "STOPPED";
+    runStatus.className = `status-pill ${processFaultLatched ? "alarm" : processRunning ? "good" : "warn"}`;
+    const readyStatus = document.getElementById("readyStatus");
+    readyStatus.textContent = data.connection_summary || `${data.ready_count || 0}/${PLC_IDS.length} READY`;
+    readyStatus.className = `status-pill ${data.ready ? "good" : "warn"}`;
+    const gaspotStatus = document.getElementById("gaspotStatus");
+    gaspotStatus.textContent = data.gaspot_connected ? "TANKS ONLINE" : "TANKS OFFLINE";
+    gaspotStatus.className = `status-pill ${data.gaspot_connected ? "good" : ""}`;
+    document.getElementById("systemClock").textContent = data.server_time ? new Date(data.server_time).toLocaleString() : "--";
+    const interlockStrip = document.getElementById("interlockStrip");
+    const interlocks = data.interlocks || [];
+    interlockStrip.textContent = interlocks.length ? `START INHIBITED: ${interlocks.join(" · ")}` : "START PERMISSIVES SATISFIED";
+    interlockStrip.classList.toggle("show", interlocks.length > 0);
     document.getElementById("stageLabel").textContent = data.process_stage || "Idle";
     document.getElementById("progressFill").style.width = data.process_step + "%";
-
-    let connCount = 0;
+    const speedInput = document.getElementById("speedInput");
+    if (speedInput && !speedInputDirty && data.process_speed_ms) {
+      speedInput.value = data.process_speed_ms;
+    }
 
     PLC_IDS.forEach((pid, pIdx) => {
       const plc = data.plcs[pid];
       if (!plc) return;
 
       const dot = document.getElementById("dot-" + pid);
-      dot.className = plc.connected ? "station-dot on" : "station-dot";
-      if (plc.connected) connCount++;
+      dot.className = plc.fresh ? "station-dot on" : "station-dot";
+
+      const info = document.querySelector(`#station-${pid} .station-info`);
+      if (info) {
+        let health = info.querySelector(".station-health");
+        if (!health) {
+          health = document.createElement("span");
+          health.className = "station-health";
+          info.appendChild(health);
+        }
+        health.textContent = plc.fresh ? `VERIFIED / ${plc.age_ms} ms old` : `NOT READY / ${plc.error || "stale feedback"}`;
+      }
 
       const station = document.getElementById("station-" + pid);
       const anyOn = plc.outputs.some(v => v);
       station.className = anyOn ? "station active" : "station";
 
-      plc.outputs.forEach((on, i) => {
-        const light = document.getElementById(`light-${pid}-${i}`);
-        if (light) {
-          light.className = on ? "light on" : "light";
-          light.style.background = on ? PLC_COLORS[pid] : "#30363d";
+      (plc.points || []).forEach((point, i) => {
+        const name = document.getElementById(`point-name-${pid}-${i}`);
+        if (name) {
+          name.textContent = point.label;
+          const address = document.createElement("small");
+          address.textContent = `${point.command_address} / ${point.feedback_address}`;
+          name.appendChild(address);
         }
+        const commandOn = Boolean(plc.commands?.[i]);
+        const heartbeatOn = Boolean(plc.status_lights?.[i]);
+        const feedbackOn = Boolean(plc.outputs?.[i]);
+        const command = document.getElementById(`cmd-${pid}-${i}`);
+        const feedback = document.getElementById(`fb-${pid}-${i}`);
+        if (command) {
+          command.className = `light command${commandOn ? " on" : ""}${heartbeatOn ? " heartbeat" : ""}${operatingMode !== "MANUAL" || processRunning || !plc.fresh ? " disabled" : ""}`;
+          command.disabled = operatingMode !== "MANUAL" || processRunning || !plc.fresh;
+          command.title = heartbeatOn ? "AUTO inactive-station heartbeat command" : "Manual command request";
+        }
+        if (feedback) feedback.className = `light feedback${feedbackOn ? " on" : ""}`;
       });
 
       // Animate equipment based on any output being on
@@ -576,34 +1417,172 @@ async function pollState() {
       }
     });
 
-    document.getElementById("connStatus").textContent =
-      `${connCount}/${PLC_IDS.length} PLCs connected`;
+    renderEvents(data.events || []);
+    updateSingleLine(data);
+    updateLineView(data);
 
   } catch (err) {
-    document.getElementById("connStatus").textContent = "Connection error: " + err.message;
+    const readyStatus = document.getElementById("readyStatus");
+    readyStatus.textContent = "HMI DATA LOST";
+    readyStatus.className = "status-pill alarm";
+    const interlockStrip = document.getElementById("interlockStrip");
+    interlockStrip.textContent = `HMI SERVER COMMUNICATION ERROR: ${err.message}`;
+    interlockStrip.classList.add("show");
+  }
+}
+
+function renderEvents(events) {
+  const body = document.getElementById("eventRows");
+  body.replaceChildren();
+  if (!events.length) {
+    const row = body.insertRow();
+    const cell = row.insertCell();
+    cell.colSpan = 4;
+    cell.textContent = "No events recorded.";
+    return;
+  }
+  events.forEach(event => {
+    const row = body.insertRow();
+    row.className = String(event.severity || "").toLowerCase();
+    const values = [new Date(event.timestamp).toLocaleString(), event.severity, event.source, event.message];
+    values.forEach((value, idx) => {
+      const cell = row.insertCell();
+      cell.textContent = value || "";
+      if (idx === 1) cell.className = "event-severity";
+    });
+  });
+}
+
+async function setMode(mode) {
+  if (processRequestPending || processRunning) return;
+  processRequestPending = true;
+  try {
+    const resp = await fetch("/api/mode", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode })
+    });
+    const result = await resp.json();
+    if (!resp.ok || !result.ok) throw new Error(result.error || "Mode change failed");
+    operatingMode = result.mode;
+  } catch (err) {
+    document.getElementById("stageLabel").textContent = `MODE CHANGE BLOCKED: ${err.message}`;
+  } finally {
+    processRequestPending = false;
+    pollState();
   }
 }
 
 async function toggleProcess() {
+  if (processRequestPending || processFaultLatched) return;
   const action = processRunning ? "stop" : "start";
-  await fetch("/api/process", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action })
-  });
+  processRequestPending = true;
+  try {
+    const resp = await fetch("/api/process", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action })
+    });
+    const result = await resp.json();
+    if (!resp.ok || !result.ok) throw new Error(result.error || `${action} request failed`);
+    processRunning = Boolean(result.running);
+  } catch (err) {
+    document.getElementById("stageLabel").textContent = `INTERLOCK: ${err.message}`;
+  } finally {
+    processRequestPending = false;
+    pollState();
+  }
+}
+
+async function resetFault() {
+  if (processRequestPending) return;
+  processRequestPending = true;
+  const resetBtn = document.getElementById("resetFaultBtn");
+  resetBtn.disabled = true;
+  try {
+    const resp = await fetch("/api/process", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reset" })
+    });
+    const result = await resp.json();
+    if (!resp.ok || !result.ok) throw new Error(result.error || "Fault reset failed");
+  } catch (err) {
+    document.getElementById("stageLabel").textContent = `RESET BLOCKED: ${err.message}`;
+  } finally {
+    resetBtn.disabled = false;
+    processRequestPending = false;
+    pollState();
+  }
 }
 
 async function toggleCommand(pid, devIdx) {
-  const light = document.getElementById(`light-${pid}-${devIdx}`);
+  const light = document.getElementById(`cmd-${pid}-${devIdx}`);
   const isOn = light.classList.contains("on");
-  await fetch("/api/command", {
+  const resp = await fetch("/api/command", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ plc_id: pid, dev_idx: devIdx, state: !isOn })
   });
+  const result = await resp.json();
+  if (!resp.ok || !result.ok) document.getElementById("stageLabel").textContent = `MANUAL COMMAND BLOCKED: ${result.error || "PLC command failed"}`;
+}
+
+function initLineViewLights() {
+  PLC_IDS.forEach(pid => {
+    const container = document.getElementById("lv-lights-" + pid);
+    if (!container) return;
+    const count = PLC_DEVICE_COUNTS[pid];
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement("div");
+      dot.className = "lv-light";
+      dot.id = `lv-l-${pid}-${i}`;
+      container.appendChild(dot);
+    }
+  });
+}
+
+function updateLineView(data) {
+  const activeIdx = inferActiveStation(data);
+  const processOn = Boolean(data.process_running);
+
+  document.getElementById("lvStage").textContent = data.process_stage || "Idle";
+  document.getElementById("lvStageBottom").textContent = data.process_stage || "Idle";
+  document.getElementById("lvSpeed").textContent = data.process_speed_ms || 300;
+  document.getElementById("lvProgress").textContent = data.process_step || 0;
+
+  PLC_IDS.forEach((pid, idx) => {
+    const plc = data.plcs[pid];
+    if (!plc) return;
+    const outputs = plc.outputs || [];
+    const anyOn = outputs.some(v => v);
+    const isActive = idx === activeIdx;
+    const box = document.getElementById("lv-box-" + pid);
+    const dot = document.getElementById("lv-dot-" + pid);
+    if (box) {
+      box.classList.toggle("active", isActive);
+      box.classList.toggle("status", !isActive && anyOn);
+    }
+    if (dot) dot.classList.toggle("on", plc.connected);
+    const displayLights = outputs.map((on, i) => on || Boolean(plc.status_lights?.[i]));
+    displayLights.forEach((on, i) => {
+      const light = document.getElementById(`lv-l-${pid}-${i}`);
+      if (light) light.style.background = on ? PLC_COLORS[pid] : "#697178";
+    });
+    if (idx < PLC_IDS.length - 1) {
+      const arr = document.getElementById("lv-arr-" + idx);
+      if (arr) arr.classList.toggle("active", processOn && activeIdx >= idx);
+    }
+  });
 }
 
 initLights();
+initLineViewLights();
+initSingleLineRollers();
+document.getElementById("speedInput").addEventListener("input", () => { speedInputDirty = true; });
+document.getElementById("speedInput").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") applySpeed();
+});
 setInterval(pollState, 500);
 pollState();
 </script>

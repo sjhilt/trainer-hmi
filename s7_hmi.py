@@ -37,6 +37,8 @@ import sys
 import tkinter as tk
 from tkinter import messagebox
 
+from hmi_branding import apply_window_branding, configure_process_branding
+
 try:
     import snap7
     from snap7.util import get_bool, set_bool
@@ -224,6 +226,7 @@ class S7HMI:
         self.kitt_direction = 1
 
         self.root.title("Siemens S7-1200 HMI - {}".format(conn.host))
+        apply_window_branding(self.root)
         self.root.configure(bg=BG)
         self.root.resizable(False, False)
         self.root.protocol("WM_DELETE_WINDOW", self.close)
@@ -607,6 +610,7 @@ class S7HMI:
 
 def main():
     args = parse_args()
+    configure_process_branding()
     root = tk.Tk()
 
     if snap7 is None:

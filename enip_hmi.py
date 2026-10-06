@@ -34,6 +34,8 @@ import sys
 import tkinter as tk
 from tkinter import messagebox
 
+from hmi_branding import apply_window_branding, configure_process_branding
+
 try:
     from pycomm3 import SLCDriver
 except ImportError:
@@ -163,6 +165,7 @@ class EnipHMI:
         self.kitt_direction = 1
 
         self.root.title("MicroLogix 1100 ENIP HMI - {}".format(host))
+        apply_window_branding(self.root)
         self.root.configure(bg=BG)
         self.root.resizable(False, False)
         self.root.protocol("WM_DELETE_WINDOW", self.close)
@@ -668,6 +671,7 @@ class EnipHMI:
 
 def main():
     args = parse_args()
+    configure_process_branding()
     root = tk.Tk()
 
     if SLCDriver is None:
