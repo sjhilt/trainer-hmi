@@ -1,10 +1,10 @@
 # Licensing
 
-Copyright (c) 2025-2026 Stephen J. Hilt and Chris Sistrunk.
+Copyright (c) 2025-2026 Stephen Hilt.
 
 This repository is **source-available**, not open-source as that term is
 defined by the Open Source Initiative. Commercial use is not permitted under
-the licenses granted here. Contact the copyright holders if you need rights
+the licenses granted here. Contact the copyright holder if you need rights
 that these licenses do not grant.
 
 ## Software
@@ -14,7 +14,7 @@ other software-related files in this repository are licensed under the
 **PolyForm Noncommercial License 1.0.0**. The complete terms are in
 [`LICENSE`](LICENSE).
 
-Required Notice: Copyright (c) 2025-2026 Stephen J. Hilt and Chris Sistrunk.
+Required Notice: Copyright (c) 2025-2026 Stephen Hilt.
 
 PolyForm Noncommercial permits use, modification, and redistribution only for
 purposes allowed by that license. In particular, it does not grant permission
