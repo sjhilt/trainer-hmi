@@ -2,6 +2,15 @@
 
 HMI (Human-Machine Interface) scripts for a multi-PLC training lab.
 
+## License
+
+This project is source-available for noncommercial use. Software is licensed
+under the **PolyForm Noncommercial License 1.0.0**; project documentation and
+artwork are licensed under **CC BY-NC-SA 4.0**. Commercial use is not
+permitted under either license. See [`LICENSING.md`](LICENSING.md) for the
+exact scope, attribution requirements, complete terms, and treatment of
+earlier MIT-licensed copies.
+
 ## PLCs
 
 | PLC | IP | Protocol | I/O |
